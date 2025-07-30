@@ -1,0 +1,30 @@
+
+:root {
+    --primary-color: #5A8D9F; /* Soft blue-grey */
+    --accent-color: #D6A47C; /* Muted orange-brown */
+    --secondary-accent-color: #A3CC91; /* Soft green */
+    --bg-dark: #1E2733; /* Darker background */
+    --bg-light: #2A3642; /* Lighter background for elements */
+    --text-light: #E0E6EB; /* Light text */
+    --border-subtle: rgba(90, 141, 159, 0.4); /* Subtler border color */
+    --border-strong: var(--primary-color); /* Stronger border for emphasis */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+
+body {
+    background: var(--bg-dark);
+    color: var(--text-light);
+    min-height: 100vh;
+    padding: 15px; /* Slightly reduced overall padding */
+    background-image:
+        radial-gradient(circle at 15% 25%, rgba(90, 141, 159, 0.08) 0%, transparent 20%),
+        radial-gradient(circle at 85% 75%, rgba(214, 164, 124, 0.08) 0%, transparent 20%);
+    overflow-x: hidden;
+    line-height: 1.6;
+}

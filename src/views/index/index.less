@@ -1,0 +1,777 @@
+
+
+.container {
+    max-width: 960px; /* Slightly narrower max-width */
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 95vh;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    border-radius: 10px; /* Slightly less rounded */
+    overflow: hidden;
+}
+
+header {
+    text-align: center;
+    padding: 25px 15px; /* Reduced padding */
+    margin-bottom: 15px; /* Reduced margin */
+    position: relative;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 10px 10px 0 0;
+}
+
+h1 {
+    font-size: 2.2rem; /* Slightly smaller font size */
+    margin-bottom: 8px;
+    color: var(--primary-color);
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 1rem; /* Slightly smaller font size */
+    color: var(--accent-color);
+    opacity: 0.8;
+}
+.version {
+    font-size: .7rem;
+    color: var(--accent-color);
+    opacity: 0.6;
+}
+
+.game-ui {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 20px; /* Reduced gap */
+    flex: 1;
+    padding: 15px; /* Reduced padding */
+    background: var(--bg-dark);
+}
+
+.game-area {
+    background: var(--bg-light);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 20px; /* Reduced padding */
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.scene-container {
+    position: relative;
+    min-height: 250px; /* Reduced min-height */
+    margin-bottom: 20px; /* Reduced margin */
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.3);
+}
+
+#scene-img {
+    max-width: 100%;
+    max-height: 230px; /* Reduced max-height */
+    border-radius: 4px;
+    object-fit: contain;
+    image-rendering: auto;
+}
+
+.story-text {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 18px; /* Reduced padding */
+    margin-bottom: 20px; /* Reduced margin */
+    font-size: 1rem; /* Slightly smaller font size */
+    line-height: 1.7;
+    min-height: 130px; /* Reduced min-height */
+    box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.4);
+    overflow-y: auto;
+}
+
+.choices-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px; /* Reduced gap */
+}
+
+.choice-btn {
+    background: var(--bg-dark);
+    border: 1px solid var(--primary-color);
+    color: var(--text-light);
+    padding: 12px 18px; /* Reduced padding */
+    border-radius: 6px;
+    font-size: 0.9rem; /* Slightly smaller font size */
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    user-select: none;
+}
+
+.choice-btn:hover {
+    background: var(--primary-color);
+    color: var(--bg-dark);
+    transform: translateY(-1px); /* More subtle lift */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.choice-btn:active {
+    transform: translateY(0);
+    background: color-mix(in srgb, var(--primary-color) 80%, black);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.choice-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transition: 0.5s ease-out;
+}
+
+.choice-btn:hover::before {
+    left: 100%;
+}
+
+.custom-choice-container {
+    margin-top: 20px; /* Adjusted margin for custom input area */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Adjusted gap for custom input elements */
+    padding-top: 15px; /* Added padding to separate from choices */
+    border-top: 1px dashed var(--border-subtle);
+}
+
+.custom-choice-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Adjusted gap */
+}
+
+.custom-input-box {
+    display: flex;
+    gap: 8px; /* Gap between input and button */
+}
+
+#custom-choice-input {
+    flex-grow: 1;
+    padding: 10px 12px; /* Adjusted padding */
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    background: var(--bg-dark);
+    color: var(--text-light);
+    font-size: 0.9rem; /* Adjusted font size */
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+#custom-choice-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(214, 164, 124, 0.3);
+}
+
+#submit-custom-choice {
+    background: var(--accent-color);
+    color: var(--bg-dark);
+    border: none;
+    padding: 10px 18px; /* Adjusted padding */
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem; /* Adjusted font size */
+    transition: background 0.2s ease, transform 0.1s ease;
+    white-space: nowrap; /* Prevent button text from wrapping */
+}
+
+#submit-custom-choice:hover {
+    background: color-mix(in srgb, var(--accent-color) 85%, black);
+    transform: translateY(-1px);
+}
+
+#submit-custom-choice:active {
+    transform: translateY(0);
+    background: color-mix(in srgb, var(--accent-color) 70%, black);
+}
+
+.skill-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Reduced gap */
+    margin-top: 6px; /* Reduced margin */
+}
+
+.stats-panel {
+    background: var(--bg-light);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 20px; /* Reduced padding */
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Reduced gap */
+}
+
+.panel-title {
+    font-size: 1.2rem; /* Slightly smaller font size */
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 8px; /* Reduced margin */
+    border-bottom: 1px dashed var(--border-subtle);
+    padding-bottom: 8px; /* Reduced padding */
+    font-weight: 500;
+}
+
+.character-info {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 15px; /* Reduced padding */
+    border: 1px solid var(--primary-color);
+}
+
+.char-header {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Reduced gap */
+    margin-bottom: 12px; /* Reduced margin */
+}
+
+.char-icon {
+    width: 50px; /* Slightly smaller */
+    height: 50px; /* Slightly smaller */
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem; /* Adjusted font size */
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.char-name {
+    font-size: 1.2rem; /* Slightly smaller font size */
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.health-bar {
+    height: 16px; /* Reduced height */
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px; /* Adjusted border-radius */
+    margin: 8px 0; /* Reduced margin */
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary-accent-color), var(--accent-color));
+    border-radius: 8px;
+    transition: width 0.4s ease-out;
+}
+
+.health-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem; /* Slightly smaller font size */
+    color: var(--text-light);
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px; /* Reduced gap */
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 10px; /* Reduced padding */
+    border-radius: 5px; /* Slightly less rounded */
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-value {
+    font-size: 1.2rem; /* Slightly smaller font size */
+    color: var(--accent-color);
+    font-weight: 600;
+    display: block;
+    margin-top: 3px; /* Reduced margin */
+}
+
+.skills-container, .inventory-container, .achievement-container, .adventure-log-container {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 15px; /* Reduced padding */
+    margin-bottom: 5px;
+}
+
+.skills-container { border: 1px solid var(--secondary-accent-color); }
+.inventory-container { border: 1px solid var(--accent-color); }
+.achievement-container { border: 1px solid gold; }
+.adventure-log-container { border: 1px solid var(--primary-color); }
+
+.scrollable-content {
+    max-height: 120px; /* Further reduced height */
+    overflow-y: auto;
+    padding-right: 6px; /* For scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) rgba(0, 0, 0, 0.1);
+}
+
+.scrollable-content::-webkit-scrollbar {
+    width: 6px; /* Thinner scrollbar */
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    border: 2px solid var(--bg-light);
+}
+
+.skill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Reduced gap */
+}
+
+.skill-item {
+    background: rgba(90, 141, 159, 0.1);
+    padding: 8px; /* Reduced padding */
+    border-radius: 4px; /* Slightly less rounded */
+    border-left: 3px solid var(--secondary-accent-color);
+}
+
+.skill-name {
+    color: var(--secondary-accent-color);
+    margin-bottom: 1px; /* Reduced margin */
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Reduced gap */
+    font-weight: 600;
+    font-size: 0.9rem; /* Slightly smaller font size */
+}
+
+.skill-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem; /* Slightly smaller font size */
+    line-height: 1.4;
+}
+
+.items-grid {
+    display: block;
+    margin-top: 8px; /* Reduced margin */
+}
+
+.item-text, .achievement-text {
+    padding: 3px 0; /* Reduced padding */
+    text-align: left;
+    width: 100%;
+    font-size: 0.85rem; /* Slightly smaller font size */
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.status-bar {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px; /* Reduced margin */
+    padding: 12px; /* Reduced padding */
+    background: var(--bg-light);
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.85rem; /* Slightly smaller font size */
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.status-value {
+    font-size: 1.2rem; /* Slightly smaller font size */
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-top: 4px; /* Reduced margin */
+}
+
+.game-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0; /* Add margin above and below */
+    padding: 10px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+    gap: 15px; /* Added gap for potential multiple buttons */
+}
+
+.control-btn {
+    background: var(--primary-color);
+    color: var(--bg-dark);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s ease, transform 0.1s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.control-btn:hover {
+    background: color-mix(in srgb, var(--primary-color) 85%, black);
+    transform: translateY(-1px);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+    background: color-mix(in srgb, var(--primary-color) 70%, black);
+}
+
+.loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(13, 13, 26, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border-radius: 8px;
+}
+
+.loading.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.loading-spinner {
+    width: 40px; /* Slightly smaller */
+    height: 40px; /* Slightly smaller */
+    border: 4px solid rgba(90, 141, 159, 0.3);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px; /* Reduced margin */
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 1rem; /* Slightly smaller font size */
+    color: var(--primary-color);
+    text-align: center;
+}
+
+footer {
+    text-align: center;
+    padding: 15px; /* Reduced padding */
+    margin-top: 15px; /* Reduced margin */
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem; /* Slightly smaller font size */
+    border-top: 1px dashed var(--border-subtle);
+    background: var(--bg-light);
+    border-radius: 0 0 10px 10px;
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    body {
+        padding: 10px; /* Even less padding on smallest screens */
+    }
+
+    .container {
+        border-radius: 0; /* No border-radius on mobile for full width */
+        box-shadow: none; /* No box-shadow on mobile */
+    }
+
+    header {
+        padding: 20px 10px; /* More compact header */
+        margin-bottom: 10px;
+        border-radius: 0;
+    }
+
+    h1 {
+        font-size: 1.8rem; /* Smaller title on mobile */
+    }
+    .subtitle {
+        font-size: 0.9rem; /* Smaller subtitle on mobile */
+    }
+
+    .game-ui { 
+        grid-template-columns: 1fr; 
+        padding: 10px; /* More compact overall game UI padding */
+        gap: 15px; /* Reduced gap */
+    }
+    
+    .game-area {
+        padding: 15px; /* More compact game area padding */
+    }
+
+    .scene-container {
+        min-height: 200px; /* Further reduced min-height for scene */
+        margin-bottom: 15px;
+    }
+
+    #scene-img {
+        max-height: 180px; /* Adjusted image max-height */
+    }
+
+    .story-text {
+        padding: 15px; /* More compact story text padding */
+        margin-bottom: 15px;
+        font-size: 0.95rem; /* Adjusted font size */
+        min-height: 100px; /* Adjusted min-height */
+    }
+
+    .choices-container { 
+        grid-template-columns: 1fr; /* Stack choices vertically */
+        gap: 10px; /* Reduced gap */
+    }
+    
+    .choice-btn {
+        padding: 12px 15px; /* Adjusted padding */
+        font-size: 0.85rem; /* Adjusted font size */
+    }
+
+    .custom-choice-container {
+        margin-top: 15px; /* Reduced margin on mobile */
+        gap: 8px; /* Reduced gap on mobile */
+        padding-top: 10px; /* Reduced padding on mobile */
+    }
+    #custom-choice-input {
+        padding: 10px; /* Adjusted padding */
+        font-size: 0.85rem; /* Adjusted font size */
+        height: auto; /* Allow height to adjust */
+    }
+    #submit-custom-choice {
+        padding: 0 15px; /* Adjusted padding */
+        font-size: 0.85rem; /* Adjusted font size */
+    }
+    .custom-choice-label {
+        font-size: 0.8rem; /* Adjusted font size */
+        gap: 6px;
+    }
+    
+    .stats-panel {
+        padding: 15px; /* More compact stats panel padding */
+        gap: 15px; /* Maintained for clarity between sections */
+    }
+
+    .panel-title {
+        font-size: 1.1rem; /* Smaller panel title */
+        margin-bottom: 10px;
+    }
+
+    .character-info {
+        padding: 12px; /* More compact char info */
+    }
+
+    .char-icon {
+        width: 45px; /* Even smaller icon */
+        height: 45px;
+        font-size: 1.4rem;
+    }
+
+    .char-name {
+        font-size: 1.1rem; /* Smaller char name */
+    }
+
+    .health-bar {
+        height: 14px; /* Even smaller health bar */
+        margin: 6px 0;
+    }
+
+    .health-text {
+        font-size: 0.65rem; /* Smaller health text */
+    }
+
+    .stats-grid {
+        gap: 8px; /* Reduced gap */
+    }
+
+    .stat-item {
+        padding: 8px; /* Reduced padding */
+        font-size: 0.8rem; /* Reduced label font size */
+    }
+    .stat-value {
+        font-size: 1.1rem; /* Reduced stat value font size */
+    }
+
+    .skills-container, .inventory-container, .achievement-container, .adventure-log-container {
+        padding: 12px; /* More compact section padding */
+    }
+
+    .scrollable-content {
+        max-height: 90px; /* Significantly reduced height on mobile */
+        padding-right: 4px; /* Thinner padding for scrollbar */
+    }
+    .scrollable-content::-webkit-scrollbar {
+        width: 4px; /* Even thinner scrollbar */
+    }
+
+    .skill-item {
+        padding: 6px; /* Reduced padding */
+    }
+    .skill-name {
+        font-size: 0.85rem; /* Adjusted font size */
+    }
+    .skill-description {
+        font-size: 0.7rem; /* Adjusted font size */
+    }
+    .item-text, .achievement-text {
+        font-size: 0.8rem; /* Adjusted font size */
+    }
+
+    .status-bar {
+        flex-wrap: wrap;
+        gap: 10px; /* Reduced gap */
+        padding: 10px; /* Reduced padding */
+    }
+    .status-item {
+        font-size: 0.8rem; /* Reduced font size */
+    }
+    .status-value {
+        font-size: 1.1rem; /* Reduced font size */
+    }
+    
+    .game-controls {
+        flex-direction: column; /* Stack buttons vertically on mobile */
+        gap: 10px;
+        margin: 15px 0;
+        padding: 10px;
+    }
+    
+    .control-btn {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+
+    .api-settings-container {
+        padding: 20px;
+        margin-top: 20px;
+    }
+    .api-settings {
+        grid-template-columns: 1fr; /* Stack elements on small screens */
+    }
+    .api-settings input, .api-settings-select, .api-settings button {
+        width: 100%; /* Full width for input elements and buttons */
+    }
+    .api-settings-select {
+        margin-bottom: 5px; /* Add slight margin below select on mobile */
+    }
+
+    footer {
+        padding: 12px; /* Reduced padding */
+        font-size: 0.75rem; /* Smaller footer font */
+        margin-top: 10px;
+        border-radius: 0;
+    }
+}
+
+/* --- PC-specific adjustments (for screens wider than 768px) --- */
+@media (min-width: 769px) {
+    #custom-choice-input {
+        font-size: 1rem; /* Larger font for PC */
+        padding: 12px 15px; /* More comfortable padding for PC */
+    }
+    #submit-custom-choice {
+        font-size: 1rem; /* Larger font for PC button */
+        padding: 12px 20px; /* More comfortable padding for PC button */
+    }
+    .custom-choice-label {
+        font-size: 0.95rem; /* Slightly larger label */
+    }
+    .choices-container {
+        gap: 15px; /* Slightly more space between choice buttons on PC */
+    }
+    .choice-btn {
+        padding: 14px 20px; /* More comfortable padding for PC choice buttons */
+        font-size: 0.95rem; /* Slightly larger font for PC choice buttons */
+    }
+    .story-text {
+        font-size: 1.05rem; /* Slightly larger story text for PC */
+        min-height: 150px; /* More generous height for PC story text */
+    }
+    .scene-container {
+        min-height: 280px; /* More generous height for scene on PC */
+        margin-bottom: 25px; /* Slightly more margin below scene on PC */
+    }
+    #scene-img {
+        max-height: 260px; /* More generous image height on PC */
+    }
+    .stats-panel {
+        gap: 20px; /* More space between sections in stats panel on PC */
+    }
+    .scrollable-content {
+        max-height: 150px; /* More height for scrollable content on PC */
+    }
+    .panel-title {
+        font-size: 1.3rem; /* Slightly larger panel title on PC */
+    }
+    .char-name {
+        font-size: 1.3rem; /* Slightly larger char name on PC */
+    }
+    .stat-value {
+        font-size: 1.3rem; /* Slightly larger stat values on PC */
+    }
+    /* 重开按钮PC端调整 */
+    .control-btn {
+        padding: 12px 25px; /* Increased padding for a larger button */
+        font-size: 1rem; /* Larger font size */
+        gap: 10px; /* Slightly more space for icon and text */
+    }
+    .game-controls {
+        margin: 20px 0; /* More vertical space on PC */
+        padding: 12px; /* Slightly more padding for the container */
+    }
+}
