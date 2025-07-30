@@ -72,7 +72,7 @@ For a detailed explanation on how things work, check out the [guide](http://vuej
 
 ## 🧠 技术与架构
 
-- 🎨 前端：`Vue 3` + `Pinia` 状态管理
+- 🎨 前端：`Vue 2` + `Pinia` 状态管理
 - 📜 输出格式：严格结构化 JSON，便于 AI 整合（ChatGPT、LLM等）
 - 🎮 数据驱动：所有剧情、属性、事件处理由数据层驱动
 - 💬 多模态支持：每段文本伴随 image prompt 可用于 AI 绘图（如 DALL·E / MJ）
