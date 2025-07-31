@@ -13,16 +13,16 @@
     </div>
 
     <div class="game-controls">
-      <el-button id="reset-game-btn" class="control-btn start-btn">🔄 重开局势</el-button>
+      <el-button id="reset-game-btn" class="control-btn start-btn" @click="resetGame">🔄 重开局势</el-button>
     </div>
 
     <div class="game-ui">
-        <div class="game-area">
-            <div class="loading" id="loading">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">正在推演新的乱世...</div>
-            </div>
-            
+        <div class="game-area" v-loading="aiLoading">
+          <div class="loading" id="loading">
+              <div class="loading-spinner"></div>
+              <div class="loading-text">正在推演新的乱世...</div>
+          </div>
+          
             <div class="image-settings-container">
                 <h3 class="panel-title">场景图片设置</h3>
                 <div class="image-settings">
@@ -42,10 +42,10 @@
                 <img id="scene-img" :src="currentSceneImg" alt="场景图片">
             </div>
             <div class="story-text" id="story-text">
-                {{previousSceneText}}
+                {{currentStoryText}}
             </div>
             <div class="choices-container" id="choices-container">
-              <div v-for="(item, index) in choices" class="choice-btn" :key="index" @click="confirmChoice(item.value)">{{item.text}}</div>
+              <div v-for="(item, index) in choices" class="choice-btn" :key="index" @click="confirmChoice(item)">{{item.text}}</div>
             </div>
             
             <div class="custom-choice-container">
@@ -53,7 +53,7 @@
                     <i class="fas fa-pen"></i> 或自行决定行动：
                 </div>
                 <div class="custom-input-box">
-                  <el-input v-model="playerChoiceText" id="custom-choice-input" placeholder="输入你的行动（如：拜访贤士、招募兵卒、侦察敌情...）"></el-input>
+                  <el-input v-model="playerChoiceText" id="custom-choice-input" placeholder="输入你的行动（如：拜访贤士、招募兵卒、侦察敌情...）" @confirm="confirmChoiceText"></el-input>
                   <el-button id="submit-custom-choice" @click="confirmChoiceText">提交</el-button>
                 </div>
             </div>
@@ -66,7 +66,7 @@
                     <div id="char-name" class="char-name">{{gameState.name}}</div>
                 </div>
                 <div class="health-bar">
-                    <div id="health-bar" class="health-fill"></div>
+                    <div id="health-bar" class="health-fill" :style="{ width: (gameState.health / gameState.maxHealth * 100) + '%' }"></div>
                     <div id="health-text" class="health-text">体力: {{gameState.health}}/{{gameState.maxHealth}}</div>
                 </div>
                 <div class="stats-grid">
@@ -107,14 +107,16 @@
                 <h3 class="panel-title">功绩</h3>
                 <div id="achievement-list" class="scrollable-content">
                   <div v-if="!gameState.achievements || gameState.achievements.length === 0">尚无功绩可言</div>
-                  <div v-for="(achievement, index) in gameState.achievements" :key="index" class="achievement-text">• {{achievement.text}}</div>
+                  <template v-for="(achievement, index) in gameState.achievements">
+                    <div v-if="achievement.unlocked" class="achievement-text" :key="index">• {{achievement.text}}</div>
+                  </template>
                 </div>
             </div>
             <div class="adventure-log-container">
                 <h3 class="panel-title">大事记</h3>
                 <div id="adventure-log" class="scrollable-content">
                   <div v-if="!gameState.adventureLog || gameState.adventureLog.length === 0">天下大事，由你书写...</div>
-                  <div v-for="(log, index) in gameState.adventureLog" :key="index" class="adventure-log-text">• {{log.text}}</div>
+                  <div v-for="(log, index) in gameState.adventureLog" :key="index" class="adventure-log-text">• {{log.entry}}</div>
                 </div>
             </div>
         </div>
@@ -134,7 +136,6 @@
             <button id="clear-api-btn">清除</button>
         </div>
     </div>
-
     <footer>
         享受你的游戏
     </footer>
@@ -142,19 +143,32 @@
 </template>
 <script>
 import { defaultUserInfos } from '@/configs/default_user.js';
+import prompt from '@/configs/prompt.js';
 export default {
   data() {
     return {
       gameState: localStorage.getItem('saveData') ? JSON.parse(localStorage.getItem('saveData')).gameState : {
         ...defaultUserInfos
       },
-      currentStoryText: '',
+
+      aiLoading: false,
+      currentStoryText: '你从一个悠长的梦境中惊醒，梦里是未来世界的奇巧淫技，是闻所未闻的喧嚣与繁华。但眼前，却是简陋的茅屋、微弱的油灯。窗外，战火渐近，狼烟四起，远方山峦在暮色中影影绰绰。你意识到，你来到了一个名为"汉末三国"的乱世。在这里，无论是布衣百姓还是豪杰名士，皆可凭借智谋与武勇，逐鹿中原，问鼎天下，开创属于自己的盛世。一个神秘的声音在你脑海中回响："此乃天命所归，亦是汝之抉择。选择你的出身，书写你的传奇吧。',
       currentSceneImg: '',
       currentChoices: [],
       enableImageRendering: false,
       saveTime: new Date().toISOString(),
 
-      previousSceneText: '你从一个悠长的梦境中惊醒，梦里是未来世界的奇巧淫技，是闻所未闻的喧嚣与繁华。但眼前，却是简陋的茅屋、微弱的油灯。窗外，战火渐近，狼烟四起，远方山峦在暮色中影影绰绰。你意识到，你来到了一个名为"汉末三国"的乱世。在这里，无论是布衣百姓还是豪杰名士，皆可凭借智谋与武勇，逐鹿中原，问鼎天下，开创属于自己的盛世。一个神秘的声音在你脑海中回响："此乃天命所归，亦是汝之抉择。选择你的出身，书写你的传奇吧。',
+      // 短期记忆 (Short-Term Memory)
+      shortTermMemory: [], // 存储最近的事件，例如 { turn: 1, type: 'player_action', content: '你决定...' }
+                          // 或 { turn: 1, type: 'ai_response', content: 'AI剧情摘要...' }
+      stmMaxSize: 5,       // STM 最大存储事件数
+
+      // 长期记忆 (Long-Term Memory)
+      longTermMemory: [],  // 存储总结后的LTM条目
+      ltmSummaryInterval: 5, // 每隔多少轮触发一次STM总结到LTM
+      ltmCurrentTurnCount: 0, // 记录当前轮数，用于触发LTM总结
+      ltmMaxSize: 3,       // LTM 最大存储总结条目数 (当达到此上限时，会触发LTM自身的总结)
+      
       choices: [
         { text: '📜 汉室宗亲，身世浮沉', value: '汉室宗亲' },
         { text: '🌾 地方豪强，力耕天下', value: '地方豪强' },
@@ -163,7 +177,12 @@ export default {
         { text: '⚔️ 战乱流民，乱世求生', value: '战乱流民' }
       ],
 
-      aiModels: [],
+      customApiUrl: '', 
+      customApiKey: '', 
+      selectedModel: '',
+      models: [],
+      model: '',
+      defaultModelName: 'DeepSeek-R1-0528',
 
       playerChoiceText: ''
     }
@@ -174,22 +193,550 @@ export default {
   },
   methods: {
     init() {
+      this.loadGameState();
       this.getConfigs();
       this.getModels();
     },
     getConfigs() {
       this.$get('/game/api/config', {}, res => {
         let data = res || {};
-        console.log('data', data);
+        this.defaultModelName = data.defaultModel || 'DeepSeek-R1-0528';
+        this.model = this.defaultModelName;
       })
     },
     getModels() {
       this.$get('/game/api/models', {}, res => {
-        this.aiModels = res || [];
+        let data = res || {};
+        this.models = [...data];
       })
     },
-    confirmChoice(value) {
-      console.log('选择了：', value);
+
+
+    loadGameState() {
+
+      try {
+          const cultivationGameSave = localStorage.getItem('cultivationGameSave');
+          if (!cultivationGameSave) return false;
+          
+          const saveData = JSON.parse(cultivationGameSave);
+          if (!saveData.gameState) return false;
+          
+          // 恢复游戏状态
+          this.gameState = saveData.gameState || {};
+
+          // 在加载时检查游戏是否结束
+          if (this.gameState.health <= 0) {
+              this.updateIdentity();
+              this.currentStoryText = '你倒在血泊之中，意识逐渐模糊... 你的冒险已在此终结。';
+              this.choices = [
+                { text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' },
+              ];
+              return true;
+          }
+          
+          // 恢复界面
+          if (saveData.currentStoryText) {
+            this.currentStoryText = saveData.currentStoryText;
+          }
+          if (saveData.currentSceneImg && saveData.currentSceneImg !== window.location.href && !saveData.currentSceneImg.includes('undefined')) {
+              this.currentSceneImg = saveData.currentSceneImg;
+          }
+          
+          // 恢复选择按钮
+          if (saveData.currentChoices && Array.isArray(saveData.currentChoices)) {
+            this.choices = [...saveData.currentChoices]
+          }
+          
+          this.updateIdentity();
+          console.log('游戏状态已加载，保存时间:', saveData.saveTime);
+          return true;
+      } catch (error) {
+          console.error('加载游戏状态失败:', error);
+          return false;
+      }
+    },
+    updateIdentity() {
+        if (!Array.isArray(this.gameState.adventureLog)) {
+            this.gameState.adventureLog = [];
+        }
+
+        // 更新身份/地位显示
+        if (this.gameState.level > 30) {
+            this.gameState.identity = '帝王';
+        } else if (this.gameState.level > 25) {
+            this.gameState.identity = '丞相/大将军';
+        } else if (this.gameState.level > 20) {
+            this.gameState.identity = '州牧/太守';
+        } else if (this.gameState.level > 15) {
+            this.gameState.identity = '郡守/刺史';
+        } else if (this.gameState.level > 10) {
+            this.gameState.identity = '校尉/都尉';
+        } else if (this.gameState.level > 5) {
+            this.gameState.identity = '县令/亭长';
+        } else if (this.gameState.level > 1) {
+            this.gameState.identity = '乡绅/里正';
+        } else {
+            this.gameState.identity = '布衣';
+        }
+
+    },
+
+    confirmChoice(item = 'choice') {
+      if(item.type == 'retry') {
+        this.resetGame();
+      } else if(item.type == 'refresh') {
+        window.location.reload();
+      } else {
+        this.handleChoice(item.value, item.text);
+      }
+    },
+    resetGame() {
+      this.gameState = {
+        ...defaultUserInfos
+      },
+
+      this.aiLoading = false,
+      this.currentStoryText = '你从一个悠长的梦境中惊醒，梦里是未来世界的奇巧淫技，是闻所未闻的喧嚣与繁华。但眼前，却是简陋的茅屋、微弱的油灯。窗外，战火渐近，狼烟四起，远方山峦在暮色中影影绰绰。你意识到，你来到了一个名为"汉末三国"的乱世。在这里，无论是布衣百姓还是豪杰名士，皆可凭借智谋与武勇，逐鹿中原，问鼎天下，开创属于自己的盛世。一个神秘的声音在你脑海中回响："此乃天命所归，亦是汝之抉择。选择你的出身，书写你的传奇吧。',
+      this.currentSceneImg = '',
+      this.currentChoices = [],
+      this.saveTime = new Date().toISOString(),
+      
+      this.choices = [
+        { text: '📜 汉室宗亲，身世浮沉', value: '汉室宗亲' },
+        { text: '🌾 地方豪强，力耕天下', value: '地方豪强' },
+        { text: '📚 落魄士人，满腹经纶', value: '落魄士人' },
+        { text: '💰 行商之子，财运亨通', value: '行商之子' },
+        { text: '⚔️ 战乱流民，乱世求生', value: '战乱流民' }
+      ]
+    },
+    handleChoice(choiceTarget, choiceText) {
+        const firstChoiceAch = this.gameState.achievements.find(a => a.id === 'first_choice');
+        if (firstChoiceAch && !firstChoiceAch.unlocked) {
+            firstChoiceAch.unlocked = true;
+        }
+        this.loadScene(choiceTarget, choiceText);
+    },
+    async loadScene(sceneKey, playerChoiceText = null) {
+      this.aiLoading = true;
+
+      try {
+          const scene = await this.generateAdventure(sceneKey, playerChoiceText);
+          console.log("生成的场景:", scene);
+          if (!scene) {
+              throw new Error('AI未能生成有效场景');
+          }
+
+          // 在状态更新后检查游戏是否结束
+          if (this.gameState.health <= 0) {
+              this.updateIdentity(); // 最后一次更新UI以显示0 HP
+              this.currentStoryText = scene.text + "\n\n你的气息逐渐微弱，眼前一黑，意识沉入了无尽的黑暗... 你的冒险结束了。";
+              this.choices = [
+                { text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' },
+              ];
+              this.aiLoading = false;
+              this.saveGameState(); // 保存游戏结束的状态
+              return;
+          }
+
+          this.gameState.currentScene = sceneKey;
+          this.currentStoryText = scene.text;
+          if (!scene.choices || scene.choices.length == 0) {
+              this.choices = [{
+                text: '本次冒险暂告一段落，刷新页面重新开始。',
+                value: 'refresh',
+                type: 'refresh'
+              }];
+          }
+
+          this.choices = [...scene.choices];
+
+          // 等待图片加载完成后再保存游戏进度
+          try {
+              this.generateImage(scene.imagePrompt);
+              // 在所有DOM更新（包括图片）完成后保存游戏进度
+              this.saveGameState();
+          } catch (error) {
+              console.error("图片生成失败，但仍保存游戏进度:", error);
+              // 即使图片加载失败，也要保存游戏进度
+              this.saveGameState();
+          }
+  
+          this.updateIdentity();
+      } catch (error) {
+          console.error("冒险生成失败的详细错误:", error);
+          this.aiLoading = false;
+
+          let errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+          
+          // 根据错误类型提供不同的提示
+          if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
+              alert(`⏰ 请求超时：AI服务响应较慢，请稍后重试。\n\n建议：\n1. 检查网络连接\n2. 稍等片刻后重新选择\n3. 如持续出现，可尝试刷新页面`);
+          } else if (errorMessage.includes('API key')) {
+              alert(`🔑 API配置错误：请检查API密钥设置。\n\n如果使用默认后端API，请联系管理员。\n如果使用自定义API，请检查API设置。`);
+          } else if (errorMessage.includes('500') || errorMessage.includes('502') || errorMessage.includes('503')) {
+              alert(`🔧 服务器错误：AI服务暂时不可用。\n\n建议：\n1. 稍后重试\n2. 检查API服务状态\n3. 如持续出现，请联系技术支持`);
+          } else {
+              alert(`❌ 冒险生成失败: ${errorMessage}\n\n请检查：\n1. 网络连接是否正常\n2. API设置是否正确\n3. 查看浏览器控制台获取详细信息`);
+          }
+      }
+    },
+    generateAdventure(currentSceneKey, playerChoiceText) {
+      
+      return new Promise(async (resolve, reject) => {
+        const currentPrompt = prompt.getPrompt({
+          gameState: this.gameState, 
+          previousSceneText: this.currentStoryText, 
+          playerChoiceText: playerChoiceText
+        });
+        let params = {
+          prompt: currentPrompt,
+          model: this.model
+        }
+        console.log('请求ai')
+        this.$sPost('/game/api/chat', params, res => {
+          let data = res;
+          console.log("API返回的原始数据:", data);
+            
+          // 添加详细的调试信息
+          if (data.usage) {
+              console.log("Token使用情况:", data.usage);
+              if (data.usage.completion_tokens >= 3900) {
+                  console.warn("警告：响应接近token限制，可能被截断");
+              }
+          }
+          
+          if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+              throw new Error('API返回数据格式错误：缺少choices或message字段');
+          }
+          
+          let contentString = data.choices[0].message.content;
+          console.log("AI返回的原始内容:", contentString);
+          
+          if (!contentString || contentString.trim() === '') {
+              throw new Error('AI返回的内容为空');
+          }
+          
+          // 尝试提取JSON代码块
+          const match = contentString.match(/```json\s*([\s\S]*?)\s*```/);
+          if (match) {
+              contentString = match[1];
+              console.log("提取的JSON内容:", contentString);
+          }
+
+            
+
+          try {
+              let content;
+              try {
+                  content = JSON.parse(contentString);
+              } catch (firstError) {
+                  console.log("首次JSON解析失败，尝试修复:", firstError.message);
+                  const fixedJsonString = this.tryFixIncompleteJson(contentString);
+                  console.log("修复后的JSON:", fixedJsonString);
+                  content = JSON.parse(fixedJsonString);
+                  console.log("修复成功！");
+              }
+              console.log("解析成功的content:", JSON.stringify(content, null, 2));
+              
+              // 验证必需字段
+              if (!content.text) {
+                  console.warn("警告：缺少text字段，使用默认值");
+                  content.text = "你继续在这个神秘的世界中探索...";
+              }
+              if (!content.imagePrompt) {
+                  console.warn("警告：缺少imagePrompt字段，使用默认值");
+                  content.imagePrompt = "A mystical Chinese cultivation world scene";
+              }
+              if (!content.choices || !Array.isArray(content.choices)) {
+                  console.warn("警告：缺少choices字段，使用默认值");
+                  content.choices = [
+                      { text: "继续探索", value: "continue", type: "continue" },
+                      { text: "休息片刻", value: "rest", type: "rest" }
+                  ];
+              }
+              if (!content.gameStateUpdates) {
+                  content.gameStateUpdates = {};
+              }
+              if (!content.itemUpdates) {
+                  content.itemUpdates = { add: [], remove: [] };
+              }
+              if (!content.unlockAchievements) {
+                  content.unlockAchievements = [];
+              }
+              if (!content.logEntry) {
+                  content.logEntry = "继续冒险...";
+              }
+
+              if (content.gameState) {
+                const updates = content.gameState;
+
+                // 直接设置数值属性
+                ['health', 'maxHealth', 'attack', 'defense', 'agility', 'charm', 'coins', 'reputation', 'level'].forEach(key => {
+                  if (updates[key] !== undefined) {
+                    this.gameState[key] = Number(updates[key]);
+                  }
+                });
+
+                // 更新身份
+                if (updates.identity) {
+                  this.gameState.identity = updates.identity;
+                }
+
+                // 更新技能列表（完全替换）
+                if (updates.skills && Array.isArray(updates.skills)) {
+                  this.gameState.skills = updates.skills.map(skill => ({
+                    name: skill.name,
+                    description: skill.description || "新习得的技能",
+                    icon: skill.icon || "fa-solid fa-star"
+                  }));
+                }
+
+                // 修复物品更新逻辑 - 处理字符串数组
+                if (updates.items && Array.isArray(updates.items)) {
+                  let existItemsNames = [], existItemsNamesCounts = [];
+                  updates.items.forEach(item => {
+                    let name = '';
+                    if (typeof item === 'string') {
+                      name = item;
+                    } else {
+                      name = item.name;
+                    }
+                    if(!existItemsNames.indexOf(name) > -1) {
+                      existItemsNamesCounts[existItemsNames.indexOf(name)] += 1;
+                    } else {
+                      existItemsNames.push(name);
+                      existItemsNamesCounts = 1;
+                    }
+                  })
+                  const itemMaps = existItemsNames.map((name, index) => {
+                    // 处理对象形式的物品
+                    return {
+                      id: name.toLowerCase().replace(/\s/g, '_'),
+                      name: name,
+                      count: existItemsNamesCounts[index],
+                    };
+                  });
+                  console.log(itemMaps)
+                  this.gameState.items = itemMaps;
+                }
+
+                // 更新成就状态
+                if (updates.achievements && Array.isArray(updates.achievements)) {
+                  updates.achievements.forEach(achUpdate => {
+                    const achievement = this.gameState.achievements.find(a => a.id === achUpdate.id);
+                    if (achievement) {
+                      achievement.unlocked = achUpdate.unlocked;
+                    }
+                  });
+                }
+              }
+              if (content.itemUpdates) {
+                  if (content.itemUpdates.add && Array.isArray(content.itemUpdates.add)) {
+                      content.itemUpdates.add.forEach(newItemName => {
+                          if (typeof newItemName === 'string') {
+                              this.gameState.items.push({ id: newItemName.toLowerCase().replace(/\s/g, '_'), name: newItemName });
+                          }
+                      });
+                  }
+                  if (content.itemUpdates.remove) {
+                      content.itemUpdates.remove.forEach(itemIdToRemove => {
+                          this.gameState.items = this.gameState.items.filter(item => item.id !== itemIdToRemove);
+                      });
+                  }
+              }
+
+              if (content.unlockAchievements && Array.isArray(content.unlockAchievements)) {
+                  content.unlockAchievements.forEach(achIdToUnlock => {
+                      const achievement = this.gameState.achievements.find(a => a.id === achIdToUnlock);
+                      if (achievement && !achievement.unlocked) {
+                          achievement.unlocked = true;
+                      }
+                  });
+              }
+              
+              // 自动检查技能相关成就
+              const skillCount = this.gameState.skills.length;
+              if (skillCount >= 1) {
+                  const firstSkillAch = this.gameState.achievements.find(a => a.id === 'first_skill');
+                  if (firstSkillAch && !firstSkillAch.unlocked) {
+                      firstSkillAch.unlocked = true;
+                      console.log("解锁成就: 初窥门径");
+                  }
+              }
+              if (skillCount >= 5) {
+                  const skillMasterAch = this.gameState.achievements.find(a => a.id === 'skill_master');
+                  if (skillMasterAch && !skillMasterAch.unlocked) {
+                      skillMasterAch.unlocked = true;
+                      console.log("解锁成就: 技艺精湛");
+                  }
+              }
+              
+              // 检查法术类技能数量
+              const spellSkills = this.gameState.skills.filter(skill =>
+                  skill.name.includes('术') || skill.name.includes('法') || skill.name.includes('咒')
+              );
+              if (spellSkills.length >= 3) {
+                  const spellCasterAch = this.gameState.achievements.find(a => a.id === 'spell_caster');
+                  if (spellCasterAch && !spellCasterAch.unlocked) {
+                      spellCasterAch.unlocked = true;
+                      console.log("解锁成就: 法术大师");
+                  }
+              }
+              
+              if(content.logEntry && typeof content.logEntry === 'string') {
+                  this.gameState.turn++;
+                  this.gameState.adventureLog.push({ turn: this.gameState.turn, entry: content.logEntry });
+              }
+
+              this.updateIdentity();
+              resolve(content);
+              // return content;
+          } catch (e) {
+              console.error("JSON解析失败:", e);
+              console.error("尝试解析的内容:", contentString);
+              
+              // 尝试从原始内容中提取文本信息
+              let extractedText = "抱歉，AI响应解析失败。你发现自己站在一个神秘的地方，周围云雾缭绕，似乎有无数的可能性等待着你去探索。";
+              
+              // 尝试从截断的JSON中提取text字段
+              const textMatch = contentString.match(/"text":\s*"([^"]*(?:\\.[^"]*)*)/);
+              if (textMatch && textMatch[1]) {
+                  extractedText = textMatch[1].replace(/\\"/g, '"').replace(/\n/g, '\n');
+                  console.log("从截断的JSON中提取到文本:", extractedText);
+              }
+              
+              // 如果JSON解析失败，生成一个智能的fallback响应
+              const fallbackContent = {
+                  text: extractedText,
+                  imagePrompt: "A mystical Chinese cultivation world with swirling mists and ancient mountains, ink wash painting style",
+                  choices: [
+                      { text: "🔄 重新尝试", value: "retry", type: "retry" },
+                      { text: "🏠 返回起点", value: "start", type: "start" },
+                      { text: "继续探索", value: "continue", type: "continue" }
+                  ],
+                  gameStateUpdates: {},
+                  itemUpdates: { add: [], remove: [] },
+                  unlockAchievements: [],
+                  logEntry: "遇到了一些技术问题，但冒险仍在继续..."
+              };
+              
+              console.log("使用备用响应:", fallbackContent);
+              resolve(fallbackContent);
+              // return fallbackContent;
+          }
+
+        })
+      })
+      
+    },
+  
+
+    // 尝试修复不完整的JSON
+    tryFixIncompleteJson(jsonStr) {
+      jsonStr = jsonStr.replace(/undefined/g, 'null')
+              .replace(/<!--[\s\S]*?-->/g, '');
+      jsonStr = jsonStr.trim();
+      
+      // 尝试找到最后一个有效的JSON字符（'}' 或 ']' 或 '"'）
+      const lastBrace = jsonStr.lastIndexOf('}');
+      const lastBracket = jsonStr.lastIndexOf(']');
+      const lastQuote = jsonStr.lastIndexOf('"');
+      const lastNumber = jsonStr.search(/[0-9]\s*$/);
+
+      const lastValidCharIndex = Math.max(lastBrace, lastBracket, lastQuote, lastNumber);
+
+      // 如果字符串在最后一个有效字符后还有内容，说明可能被截断了
+      if (lastValidCharIndex !== -1 && lastValidCharIndex < jsonStr.length - 1) {
+          // 截断到最后一个有效字符
+          jsonStr = jsonStr.substring(0, lastValidCharIndex + 1);
+      }
+      
+      // 重新计算括号和花括号的配平
+      let openBraces = (jsonStr.match(/{/g) || []).length;
+      let closeBraces = (jsonStr.match(/}/g) || []).length;
+      let openBrackets = (jsonStr.match(/\[/g) || []).length;
+      let closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+      // 闭合未闭合的括号
+      while (openBrackets > closeBrackets) {
+          jsonStr += ']';
+          closeBrackets++;
+      }
+      
+      // 闭合未闭合的花括号
+      while (openBraces > closeBraces) {
+          jsonStr += '}';
+          closeBraces++;
+      }
+
+      return jsonStr;
+  },
+
+  generateImage(prompt) {
+
+      if (!this.enableImageRendering) {
+        console.log('图片渲染未开启，跳过图片生成。');
+        this.currentSceneImg = '';  // 可选清空图像
+        this.aiLoading = false;
+        return;
+      }
+      try {
+          
+          // 检查是否是本地文件访问
+          const isLocalFile = window.location.protocol === 'file:';
+          let imageUrl;
+          
+          if (isLocalFile) {
+              // 本地文件访问时直接使用pollinations API
+              imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&width=800&height=600&model=flux`;
+          } else {
+              // 通过后端API生成图片
+              this.$sPost('/game/api/image', { prompt: prompt, width: 800, height: 600, nologo: true, model: 'flux' }, res => {
+                const data = res || {};
+                if (!data.success || !data.imageUrl) {
+                    throw new Error('图片生成失败');
+                }
+                
+                this.currentSceneImg = data.imageUrl;
+                console.log('图片生成成功:', data);
+              });
+              
+          }
+          
+      } catch (error) {
+          console.error('图片生成错误:', error);
+          // 使用备用图片
+          const fallbackUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTJlIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzRlY2RjNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuS/ruS7meS4lueVjO+8muS6kea4uuS7meWcnzwvdGV4dD4KPC9zdmc+';
+          this.currentSceneImg = fallbackUrl;
+          this.aiLoading = false;
+      }
+    },
+    saveGameState() {
+        try {
+        // 保存当前的选择按钮
+        const currentChoices = [];
+        this.choices.forEach(btn => {
+          currentChoices.push({
+            text: btn.text,
+            target: btn.value,
+            type: btn.type || 'choice'
+          });
+        });
+
+        const saveData = {
+            gameState: this.gameState,
+            currentStoryText: this.currentStoryText,
+            currentSceneImg: this.currentSceneImg,
+            currentChoices: currentChoices,
+            saveTime: new Date().toISOString()
+        };
+        localStorage.setItem('cultivationGameSave', JSON.stringify(saveData));
+        console.log('游戏状态已保存');
+        return true;
+      } catch (error) {
+        console.error('保存游戏状态失败:', error);
+        return false;
+      }
     },
     confirmChoiceText() {
       if (this.playerChoiceText.trim() === '') {
@@ -198,8 +745,24 @@ export default {
       }
       console.log('自定义选择：', this.playerChoiceText);
       // 这里可以添加处理自定义选择的逻辑
+
+      const customText = this.playerChoiceText.trim();
+      if (!customText) {
+          alert('请输入你的行动指令');
+          return;
+      }
+      
+      // 添加到大事记
+      this.gameState.turn++;
+      this.gameState.adventureLog.push({ turn: this.gameState.turn, entry: `你决定: ${customText}` });
+      this.updateIdentity();
+      
+      // 加载场景
+      this.loadScene('custom', customText);
+
       this.playerChoiceText = ''; // 清空输入框
     },
+    
   }
 }
 </script>

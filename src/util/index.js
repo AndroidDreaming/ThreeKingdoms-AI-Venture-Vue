@@ -172,6 +172,7 @@ const handlerResponse = (respond, handler, errorHandler) => {
   if (respond.statusText == 'OK') {
     if (handler && typeof handler === 'function') handler(res)
   } else {
+    console.error('请求错误', `API 请求失败: ${respond}`)
     app.$message.error(res.msg)
     if (errorHandler && typeof errorHandler === 'function') errorHandler(res)
   }
