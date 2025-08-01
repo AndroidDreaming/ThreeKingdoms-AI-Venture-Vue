@@ -250,6 +250,6 @@ export default {
       gameState.adventureLog.push({ turn: gameState.turn, entry: content.logEntry });
     }
 
-    return gameState; // 返回更新后的状态
+    return gameState;
   }
 };

@@ -98,6 +98,7 @@ const getPrompt = (data) => {
                 "charm": <当前魅力值，例如 5>,
                 "coins": <当前铜钱数，例如 120>,
                 "reputation": <当前声望值，例如 10>,
+                "level": <当前等级，例如 1>,
                 "identity": "<当前身份，例如 游侠>",
                 "skills": [
                     {"name": "新获得的战法名称", "description": "战法描述", "icon": "fa-solid fa-star"},

@@ -49,7 +49,7 @@ export default {
   async generateAdventure(params) {
     const { gameState, previousStoryText, playerChoiceText, longTermMemory, model } = params;
 
-    const currentPrompt = promptGenerator.getPrompt({ // 使用重命名后的 promptGenerator
+    const currentPrompt = promptGenerator.getPrompt({
       gameState,
       previousSceneText: previousStoryText,
       playerChoiceText,
@@ -62,11 +62,10 @@ export default {
       model: model
     };
 
-    // 将 contentString 的声明移到 try...catch 块的外部
-    let contentString = ''; 
+    let contentString = '';
 
     try {
-      const data = await gameApi.chatWithAI(chatParams); // 使用封装的 API
+      const data = await gameApi.chatWithAI(chatParams);
       console.log("API返回的原始数据:", data);
 
       if (data.usage) {
@@ -80,7 +79,7 @@ export default {
         throw new Error('AI返回数据格式错误：缺少choices或message字段');
       }
 
-      contentString = data.choices[0].message.content; // 在这里赋值
+      contentString = data.choices[0].message.content;
       console.log("AI返回的原始内容:", contentString);
 
       if (!contentString || contentString.trim() === '') {
@@ -88,7 +87,7 @@ export default {
       }
 
       // 尝试提取JSON代码块
-      const match = contentString.match(/```json\s*([\s\S]*?)\s*```/); // 修复了这里的正则表达式，确保匹配的是```json```块
+      const match = contentString.match(/```json\s*([\s\S]*?)\s*```/);
       if (match) {
         contentString = match[1];
         console.log("提取的JSON内容:", contentString);
@@ -139,7 +138,6 @@ export default {
 
     } catch (e) {
       console.error("JSON解析失败或API调用失败:", e);
-      // contentString 现在在 try...catch 外部声明，所以在这里可以访问
       console.error("尝试解析的内容:", contentString);
 
       let extractedText = "抱歉，AI响应解析失败。你发现自己站在一个神秘的地方，周围云雾缭绕，似乎有无数的可能性等待着你去探索。";
@@ -149,7 +147,6 @@ export default {
         console.log("从截断的JSON中提取到文本:", extractedText);
       }
 
-      // 抛出错误，让调用者捕获并处理
       throw {
         message: `冒险生成失败: ${e.message}`,
         details: e,

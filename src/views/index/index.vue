@@ -60,7 +60,7 @@
         <div class="character-info">
           <div class="char-header">
             <div class="char-icon">👤</div>
-            <div id="char-name" class="char-name">{{gameState.name}}</div>
+            <div id="char-name" class="char-name">{{'当前回合数：'+gameState.turn}}</div>
           </div>
           <div class="health-bar">
             <div id="health-bar" class="health-fill" :style="{ width: (gameState.health / gameState.maxHealth * 100) + '%' }"></div>
@@ -161,7 +161,7 @@ export default {
       choices: [],
       enableImageRendering: false,
       saveTime: '', // 会在加载时被设置
-      maxGameTurns: 1, // 游戏回合数上限，需要根据游戏设计调整
+      maxGameTurns: 180, // 游戏回合数上限，需要根据游戏设计调整
       
       // 长期记忆 (Long-Term Memory)
       longTermMemory: [],  // 存储总结后的LTM条目
