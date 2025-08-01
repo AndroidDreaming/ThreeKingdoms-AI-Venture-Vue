@@ -122,20 +122,25 @@
         </div>
     </div>
 
-    <div class="api-settings-container">
-        <h3 class="panel-title">AI模型设置</h3>
-        <p id="api-settings-hint" style="font-size: 0.9rem; color: #888; margin-bottom: 15px;">
-            🔒 默认使用安全的后端API，无需配置。<br>
-            如需使用自定义API，请填写以下信息（配置仅存于前端浏览器，无需担心泄露）：
-        </p>
-        <div class="api-settings">
-            <input type="text" id="api-url-input" placeholder="自定义API URL (可选)">
-            <select id="model-input" class="api-settings-select"></select>
-            <input type="password" id="api-key-input" placeholder="自定义API Key (可选)">
-            <button id="save-api-btn">保存</button>
-            <button id="clear-api-btn">清除</button>
-        </div>
+  <div class="api-settings-container">
+    <h3 class="panel-title">AI模型设置</h3>
+    <p id="api-settings-hint" style="font-size: 0.9rem; color: #888; margin-bottom: 15px;">
+      🔒 默认使用安全的后端API，无需配置。<br>
+      如需使用自定义API，请填写以下信息（配置仅存于前端浏览器，无需担心泄露）：
+    </p>
+    <div class="api-settings">
+      <input type="text" id="api-url-input" placeholder="自定义API URL (可选)" v-model="customApiUrl">
+      <select id="model-input" class="api-settings-select" v-model="selectedModel">
+        <option disabled value="">请选择一个模型</option>
+        <option v-for="model in models" :key="model.id" :value="model.id">
+          {{ model.id }}
+        </option>
+      </select>
+      <input type="password" id="api-key-input" placeholder="自定义API Key (可选)" v-model="customApiKey">
+      <button id="save-api-btn" @click="saveApiSettings">保存</button>
+      <button id="clear-api-btn" @click="clearApiSettings">清除</button>
     </div>
+  </div>
     <footer>
         享受你的游戏
     </footer>
@@ -144,6 +149,14 @@
 <script>
 import { defaultUserInfos } from '@/configs/default_user.js';
 import prompt from '@/configs/prompt.js';
+import { 
+  END_PROMPT_TEMPLATE,
+  MEMORY_FORMAT,
+  ERROR_MESSAGES,
+  DEFAULT_VALUES
+} from '@/configs/end_prompt.js';
+
+
 export default {
   data() {
     return {
@@ -157,16 +170,11 @@ export default {
       currentChoices: [],
       enableImageRendering: false,
       saveTime: new Date().toISOString(),
-
-      // 短期记忆 (Short-Term Memory)
-      shortTermMemory: [], // 存储最近的事件，例如 { turn: 1, type: 'player_action', content: '你决定...' }
-                          // 或 { turn: 1, type: 'ai_response', content: 'AI剧情摘要...' }
-      stmMaxSize: 5,       // STM 最大存储事件数
-
+       maxGameTurns: 150,
       // 长期记忆 (Long-Term Memory)
       longTermMemory: [],  // 存储总结后的LTM条目
-      ltmSummaryInterval: 5, // 每隔多少轮触发一次STM总结到LTM
-      ltmCurrentTurnCount: 0, // 记录当前轮数，用于触发LTM总结
+      turnsSinceLastSummary :0, // 记录距离上次总结的回合数
+      lsummaryInterval :10, // 每隔10回合总结一次
       ltmMaxSize: 3,       // LTM 最大存储总结条目数 (当达到此上限时，会触发LTM自身的总结)
       
       choices: [
@@ -197,21 +205,73 @@ export default {
       this.getConfigs();
       this.getModels();
     },
-    getConfigs() {
-      this.$get('/game/api/config', {}, res => {
-        let data = res || {};
-        this.defaultModelName = data.defaultModel || 'DeepSeek-R1-0528';
-        this.model = this.defaultModelName;
-      })
+  getConfigs() {
+      this.$get('/game/api/config', {},
+        res => { // 成功回调 (handler)
+          let data = res || {};
+          this.defaultModelName = data.defaultModel || 'DeepSeek-R1-0528';
+          if (!this.selectedModel && this.defaultModelName && this.models.length === 0) {
+              this.selectedModel = this.defaultModelName;
+          }
+        },
+        error => { // 错误回调 (errorHandler)
+          console.error('获取配置失败:', error);
+          this.defaultModelName = 'DeepSeek-R1-0528'; // 获取失败时，设置一个默认值
+        }
+      );
     },
     getModels() {
-      this.$get('/game/api/models', {}, res => {
-        let data = res || {};
-        this.models = [...data];
-      })
+      this.$get('/game/api/models', {},
+        res => { // 成功回调 (handler)
+          let rawData = (res && Array.isArray(res.data)) ? res.data : [];
+          // 对数据进行深拷贝
+          this.models = JSON.parse(JSON.stringify(rawData));
+
+          console.log('加载到的模型数据 (深拷贝后):', this.models); 
+
+          const savedModel = localStorage.getItem('selectedModel');
+
+          // 模型选择的优先级逻辑
+          if (savedModel && this.models.some(model => model.id === savedModel)) {
+            this.selectedModel = savedModel;
+          } else if (this.defaultModelName && this.models.some(model => model.id === this.defaultModelName)) {
+            this.selectedModel = this.defaultModelName;
+          } else if (this.models.length > 0) {
+            this.selectedModel = this.models[0].id;
+          } else {
+            this.selectedModel = '无法加载模型或无可用模型';
+          }
+        },
+        error => { // 错误回调 (errorHandler)
+          console.error('获取模型列表失败:', error);
+          this.models = [];
+          this.selectedModel = '获取模型失败';
+        }
+      );
     },
-
-
+    saveApiSettings() {
+      // 这里是保存 API 设置的逻辑
+      localStorage.setItem('customApiUrl', this.customApiUrl);
+      localStorage.setItem('customApiKey', this.customApiKey);
+      localStorage.setItem('selectedModel', this.selectedModel);
+      alert('API 设置已保存！'); // 简单的提示
+      console.log('API Settings Saved:', {
+        url: this.customApiUrl,
+        key: this.customApiKey,
+        model: this.selectedModel
+      });
+    },
+    clearApiSettings() {
+      // 这里是清除 API 设置的逻辑
+      localStorage.removeItem('customApiUrl');
+      localStorage.removeItem('customApiKey');
+      localStorage.removeItem('selectedModel');
+      this.customApiUrl = '';
+      this.customApiKey = '';
+      this.selectedModel = ''; // 清除选择的模型
+      alert('API 设置已清除！'); // 简单的提示
+      console.log('API Settings Cleared.');
+    },
     loadGameState() {
 
       try {
@@ -316,6 +376,29 @@ export default {
         }
         this.loadScene(choiceTarget, choiceText);
     },
+        confirmChoiceText() {
+      if (this.playerChoiceText.trim() === '') {
+        this.$message.error('请输入有效的行动');
+        return;
+      }
+      console.log('自定义选择：', this.playerChoiceText);
+
+      const customText = this.playerChoiceText.trim();
+      if (!customText) {
+          alert('请输入你的行动指令');
+          return;
+      }
+      
+      // 添加到大事记
+      this.gameState.adventureLog.push({ turn: this.gameState.turn, entry: `你决定: ${customText}` });
+      this.updateIdentity();
+      
+      // 加载场景
+      this.loadScene('custom', customText);
+
+      this.playerChoiceText = ''; // 清空输入框
+    },  
+
     async loadScene(sceneKey, playerChoiceText = null) {
       this.aiLoading = true;
 
@@ -383,10 +466,20 @@ export default {
     generateAdventure(currentSceneKey, playerChoiceText) {
       
       return new Promise(async (resolve, reject) => {
+
+        this.turnsSinceLastSummary++;
+
+        // 检查是否需要生成长时记忆
+        if (this.turnsSinceLastSummary >= this.summaryInterval) {
+            await this.generateLongTermMemory();
+            this.turnsSinceLastSummary = 0; // 重置计数器
+        }
+
         const currentPrompt = prompt.getPrompt({
           gameState: this.gameState, 
           previousSceneText: this.currentStoryText, 
-          playerChoiceText: playerChoiceText
+          playerChoiceText: playerChoiceText,
+          longTermMemory: this.longTermMemory // 携带长时记忆
         });
         let params = {
           prompt: currentPrompt,
@@ -422,8 +515,6 @@ export default {
               contentString = match[1];
               console.log("提取的JSON内容:", contentString);
           }
-
-            
 
           try {
               let content;
@@ -471,7 +562,7 @@ export default {
                 const updates = content.gameState;
 
                 // 直接设置数值属性
-                ['health', 'maxHealth', 'attack', 'defense', 'agility', 'charm', 'coins', 'reputation', 'level'].forEach(key => {
+                ['health', 'gender','maxHealth', 'attack', 'defense', 'agility', 'charm', 'coins', 'reputation', 'level'].forEach(key => {
                   if (updates[key] !== undefined) {
                     this.gameState[key] = Number(updates[key]);
                   }
@@ -573,13 +664,13 @@ export default {
               
               // 检查法术类技能数量
               const spellSkills = this.gameState.skills.filter(skill =>
-                  skill.name.includes('术') || skill.name.includes('法') || skill.name.includes('咒')
+                  skill.name.includes('术') || skill.name.includes('策') || skill.name.includes('计')
               );
               if (spellSkills.length >= 3) {
                   const spellCasterAch = this.gameState.achievements.find(a => a.id === 'spell_caster');
                   if (spellCasterAch && !spellCasterAch.unlocked) {
                       spellCasterAch.unlocked = true;
-                      console.log("解锁成就: 法术大师");
+                      console.log("解锁成就: 战术大师");
                   }
               }
               
@@ -630,6 +721,48 @@ export default {
       
     },
   
+    
+    // 异步生成长时记忆的方法
+    async generateLongTermMemory() {
+        const logsToSummarize = this.gameState.adventureLog.slice(-this.summaryInterval); // 获取最近的回合日志
+        if (logsToSummarize.length === 0) {
+            return; // 没有日志可总结
+        }
+
+        const logText = logsToSummarize.map(log => `回合 ${log.turn}: ${log.entry}`).join('\n');
+
+        // 构建总结请求的 prompt
+        const summaryPrompt = `请总结以下游戏事件日志，提炼出关键情节、玩家的重大决策和故事走向，内容需简洁明了，限制在100字以内。\n\n日志内容:\n${logText}`;
+
+        // 调用AI进行总结
+        try {
+            const summaryParams = {
+                prompt: summaryPrompt,
+                model: this.model 
+            };
+            const summaryRes = await new Promise((resolve, reject) => {
+                this.$sPost('/game/api/chat', summaryParams, res => {
+                    if (res && res.text) { // 假设AI返回的数据中总结内容在text字段
+                        resolve(res.text);
+                    } else {
+                        reject(new Error("AI总结失败或返回格式不正确"));
+                    }
+                });
+            });
+
+           // 将新总结添加到数组开头（或末尾），并管理长度
+          this.longTermMemory.unshift(summaryRes); // 将最新记忆放在最前面
+          if (this.longTermMemory.length > this.maxLongTermMemories) {
+              this.longTermMemory.pop(); // 移除最旧的记忆
+          }
+
+          console.log("更新后的长时记忆:", this.longTermMemory);
+
+        } catch (error) {
+            console.error("生成长时记忆时发生错误:", error);
+            // 错误处理，例如不更新长时记忆或者使用默认值
+        }
+    },
 
     // 尝试修复不完整的JSON
     tryFixIncompleteJson(jsonStr) {
@@ -738,31 +871,69 @@ export default {
         return false;
       }
     },
-    confirmChoiceText() {
-      if (this.playerChoiceText.trim() === '') {
-        this.$message.error('请输入有效的行动');
-        return;
-      }
-      console.log('自定义选择：', this.playerChoiceText);
-      // 这里可以添加处理自定义选择的逻辑
-
-      const customText = this.playerChoiceText.trim();
-      if (!customText) {
-          alert('请输入你的行动指令');
-          return;
-      }
+ async endGameByTurnLimit() {
+      this.aiLoading = true;
       
-      // 添加到大事记
-      this.gameState.turn++;
-      this.gameState.adventureLog.push({ turn: this.gameState.turn, entry: `你决定: ${customText}` });
-      this.updateIdentity();
+      // 格式化记忆
+      const formattedLongTermMemory = MEMORY_FORMAT.longTerm(this.longTermMemory);
+      const formattedShortTermMemory = MEMORY_FORMAT.shortTerm(this.gameState.adventureLog);
       
-      // 加载场景
-      this.loadScene('custom', customText);
-
-      this.playerChoiceText = ''; // 清空输入框
+      // 准备模板数据
+      const templateData = {
+        turn: this.gameState.turn,
+        longTermMemory: formattedLongTermMemory,
+        shortTermMemory: formattedShortTermMemory,
+        identity: this.gameState.identity,
+        level: this.gameState.level,
+        age: this.gameState.age,
+        health: this.gameState.health,
+        maxHealth: this.gameState.maxHealth,
+        attack: this.gameState.attack,
+        defense: this.gameState.defense,
+        agility: this.gameState.agility,
+        charm: this.gameState.charm,
+        coins: this.gameState.coins,
+        reputation: this.gameState.reputation,
+          skills: (this.gameState.skills && this.gameState.skills.length > 0)
+            ? this.gameState.skills.map(s => s.name).join('; ')
+            : DEFAULT_VALUES.skills,
+          items: (this.gameState.items && this.gameState.items.length > 0)
+           ? this.gameState.items.join('; ')
+           : DEFAULT_VALUES.items,
+          achievements: (this.gameState.achievements && this.gameState.achievements.length > 0)
+                  ? this.gameState.achievements.filter(a => a.unlocked).map(a => a.id).join('; ')
+                  : DEFAULT_VALUES.achievements,
+        storySnippet: this.currentStoryText.slice(-250)
+      };
+      
+      // 生成最终提示词
+      const finalPrompt = Object.entries(templateData).reduce(
+        (str, [key, value]) => str.replace(`{${key}}`, value),
+        END_PROMPT_TEMPLATE
+      );
+      
+      console.log(ERROR_MESSAGES.LOADING);
+      
+      try {
+        const params = { prompt: finalPrompt, model: this.model };
+        const res = await this.$post('/game/api/chat', params);
+        
+        if (res && res.text) { // <-- 这里进行了修改
+          this.currentStoryText = res.text;
+          this.currentChoices = [];
+          console.log("游戏结局:", res.text);
+        } else {
+          throw new Error("AI返回格式不正确");
+        }
+      } catch (error) {
+        console.error("生成游戏结局时发生错误:", error);
+        this.currentStoryText = ERROR_MESSAGES.AI_FAILED;
+        this.currentChoices = [];
+      } finally {
+        this.aiLoading = false;
+      }
     },
-    
+
   }
 }
 </script>
