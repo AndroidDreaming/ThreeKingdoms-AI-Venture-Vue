@@ -5,11 +5,24 @@
 const path = require('path')
 
 module.exports = {
+    build: {
+    assetsSubDirectory: 'static',
+    assetsPublicPath: './', //打包情况
+    proxyTable: {
+        '/game': {
+          target: 'http://115.190.105.16:8111/',
+          changeOrigin: true,
+          pathRewrite: {
+              '^/game': ''
+          }
+        }
+      }
+  },
   dev: {
 
     // Paths
     assetsSubDirectory: 'static',
-    assetsPublicPath: './',
+    assetsPublicPath: '/',
     proxyTable: {
         '/game': {
           target: 'http://115.190.105.16:8111/',
@@ -27,6 +40,16 @@ module.exports = {
     errorOverlay: true,
     notifyOnErrors: true,
     poll: false, // https://webpack.js.org/configuration/dev-server/#devserver-watchoptions-
+
+    before(app) {
+      app.all('*', (req, res, next) => {
+        // 设置 CSP 头
+        res.setHeader('Content-Security-Policy', "default-src 'self' data:; font-src 'self' data: http://localhost:9527; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'");
+        // 如果你的应用也需要跨域，可以加上 Access-Control-Allow-Origin
+        res.setHeader('Access-Control-Allow-Origin', '*'); // 允许所有来源，仅用于开发环境
+        next();
+      });
+    },
 
     // Use Eslint Loader?
     // If true, your code will be linted during bundling and

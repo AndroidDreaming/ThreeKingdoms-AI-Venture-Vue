@@ -470,7 +470,9 @@ export default {
         this.turnsSinceLastSummary++;
 
         // 检查是否需要生成长时记忆
-        if (this.turnsSinceLastSummary >= this.summaryInterval) {
+        console.log("this.turnsSinceLastSummary :" + this.turnsSinceLastSummary )
+        console.log("this.summaryInterval :" +  this.lsummaryInterval )
+        if (this.turnsSinceLastSummary >= this.lsummaryInterval) {
             await this.generateLongTermMemory();
             this.turnsSinceLastSummary = 0; // 重置计数器
         }
@@ -481,12 +483,13 @@ export default {
           playerChoiceText: playerChoiceText,
           longTermMemory: this.longTermMemory // 携带长时记忆
         });
+        console.log("LTM内容："+this.longTermMemory)
         let params = {
           prompt: currentPrompt,
           model: this.model
         }
         console.log('请求ai')
-        this.$sPost('/game/api/chat', params, res => {
+        this.$post('/game/api/chat', params, res => {
           let data = res;
           console.log("API返回的原始数据:", data);
             
@@ -722,48 +725,75 @@ export default {
     },
   
     
-    // 异步生成长时记忆的方法
-    async generateLongTermMemory() {
-        const logsToSummarize = this.gameState.adventureLog.slice(-this.summaryInterval); // 获取最近的回合日志
-        if (logsToSummarize.length === 0) {
-            return; // 没有日志可总结
-        }
+// 异步生成长时记忆的方法
+async generateLongTermMemory() {
+    const logsToSummarize = this.gameState.adventureLog.slice(-this.lsummaryInterval); // 获取最近的回合日志
+    if (logsToSummarize.length === 0) {
+        return;
+    }
 
-        const logText = logsToSummarize.map(log => `回合 ${log.turn}: ${log.entry}`).join('\n');
+    console.log("开始生成长时记忆------");
+    const logText = logsToSummarize.map(log => `回合 ${log.turn}: ${log.entry}`).join('\n');
 
-        // 构建总结请求的 prompt
-        const summaryPrompt = `请总结以下游戏事件日志，提炼出关键情节、玩家的重大决策和故事走向，内容需简洁明了，限制在100字以内。\n\n日志内容:\n${logText}`;
+    // 构建总结请求的 prompt
+    const summaryPrompt = `请总结以下游戏事件日志，提炼出关键情节、玩家的重大决策和故事走向，内容需简洁明了，限制在100字以内。\n\n日志内容:\n${logText}`;
 
-        // 调用AI进行总结
-        try {
-            const summaryParams = {
-                prompt: summaryPrompt,
-                model: this.model 
-            };
-            const summaryRes = await new Promise((resolve, reject) => {
-                this.$sPost('/game/api/chat', summaryParams, res => {
-                    if (res && res.text) { // 假设AI返回的数据中总结内容在text字段
-                        resolve(res.text);
-                    } else {
-                        reject(new Error("AI总结失败或返回格式不正确"));
+    // 调用AI进行总结
+    try {
+        const summaryParams = {
+            prompt: summaryPrompt,
+            model: this.model
+        };
+
+        const summaryRes = await new Promise((resolve, reject) => {
+            this.$post('/game/api/chat', summaryParams, res => {
+                console.log("[总结AI-API响应]:", res); // 调试用
+
+                try {
+                    // **修正后的检查响应结构逻辑**
+                    if (!res || !res.choices || !res.choices[0] || !res.choices[0].message || !res.choices[0].message.content) {
+                        console.error("API返回结构异常: 缺少必要字段", res);
+                        throw new Error("AI返回数据格式不正确或缺少必要字段");
                     }
-                });
+
+                    // 解析content中的JSON
+                    const content = res.choices[0].message.content;
+                    if (typeof content !== 'string') {
+                        console.error("API返回的content不是字符串:", content);
+                        throw new Error("AI返回的content不是有效的JSON字符串");
+                    }
+
+                    let parsedContent;
+                    try {
+                        parsedContent = JSON.parse(content);
+                    } catch (jsonError) {
+                        console.error("解析content中的JSON时出错:", jsonError, "原始content:", content);
+                        throw new Error("解析AI返回的JSON内容失败");
+                    }
+
+                    resolve(parsedContent); 
+                } catch (error) {
+                    console.error("处理API响应时出错:", error);
+                    reject(error);
+                }
             });
+        });
 
-           // 将新总结添加到数组开头（或末尾），并管理长度
-          this.longTermMemory.unshift(summaryRes); // 将最新记忆放在最前面
-          if (this.longTermMemory.length > this.maxLongTermMemories) {
-              this.longTermMemory.pop(); // 移除最旧的记忆
-          }
 
-          console.log("更新后的长时记忆:", this.longTermMemory);
-
-        } catch (error) {
-            console.error("生成长时记忆时发生错误:", error);
-            // 错误处理，例如不更新长时记忆或者使用默认值
+        this.longTermMemory.unshift(summaryRes.summary || summaryRes); 
+        if (this.longTermMemory.length > this.maxLongTermMemories) {
+           // 移除最旧的记忆
+            this.longTermMemory.pop();
         }
-    },
 
+        console.log("新增长时记忆内容:", summaryRes);
+        console.log("更新后的长时记忆数组:", this.longTermMemory);
+
+    } catch (error) {
+        console.error("生成长时记忆时发生错误:", error);
+
+    }
+},
     // 尝试修复不完整的JSON
     tryFixIncompleteJson(jsonStr) {
       jsonStr = jsonStr.replace(/undefined/g, 'null')
