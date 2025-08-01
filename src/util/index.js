@@ -178,6 +178,11 @@ const handlerResponse = (respond, handler, errorHandler) => {
   }
 }
 
+Vue.prototype.$get = get
+Vue.prototype.$post = post
+Vue.prototype.$sGet = sGet
+Vue.prototype.$sPost = sPost
+
 export default {
   get,
   post,
