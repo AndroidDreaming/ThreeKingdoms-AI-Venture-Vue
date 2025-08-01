@@ -170,7 +170,7 @@ export default {
       currentChoices: [],
       enableImageRendering: false,
       saveTime: new Date().toISOString(),
-       maxGameTurns: 150,
+      maxGameTurns: 1,
       // 长期记忆 (Long-Term Memory)
       longTermMemory: [],  // 存储总结后的LTM条目
       turnsSinceLastSummary :0, // 记录距离上次总结的回合数
@@ -403,11 +403,6 @@ export default {
       this.aiLoading = true;
 
       try {
-          const scene = await this.generateAdventure(sceneKey, playerChoiceText);
-          console.log("生成的场景:", scene);
-          if (!scene) {
-              throw new Error('AI未能生成有效场景');
-          }
 
           // 在状态更新后检查游戏是否结束
           if (this.gameState.health <= 0) {
@@ -419,6 +414,22 @@ export default {
               this.aiLoading = false;
               this.saveGameState(); // 保存游戏结束的状态
               return;
+          }
+
+          if(this.gameState.turn >= this.maxGameTurns){
+            await this.endGameByTurnLimit();
+            this.choices = [
+              { text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' },
+            ];
+            this.aiLoading = false;
+            this.saveGameState(); 
+            return;
+          }
+
+          const scene = await this.generateAdventure(sceneKey, playerChoiceText);
+          console.log("生成的场景:", scene);
+          if (!scene) {
+              throw new Error('AI未能生成有效场景');
           }
 
           this.gameState.currentScene = sceneKey;
@@ -665,7 +676,7 @@ export default {
                   }
               }
               
-              // 检查法术类技能数量
+              // 检查战技技能数量
               const spellSkills = this.gameState.skills.filter(skill =>
                   skill.name.includes('术') || skill.name.includes('策') || skill.name.includes('计')
               );
@@ -901,69 +912,98 @@ async generateLongTermMemory() {
         return false;
       }
     },
- async endGameByTurnLimit() {
+  async endGameByTurnLimit() {
       this.aiLoading = true;
-      
+
       // 格式化记忆
       const formattedLongTermMemory = MEMORY_FORMAT.longTerm(this.longTermMemory);
       const formattedShortTermMemory = MEMORY_FORMAT.shortTerm(this.gameState.adventureLog);
-      
+
       // 准备模板数据
       const templateData = {
-        turn: this.gameState.turn,
-        longTermMemory: formattedLongTermMemory,
-        shortTermMemory: formattedShortTermMemory,
-        identity: this.gameState.identity,
-        level: this.gameState.level,
-        age: this.gameState.age,
-        health: this.gameState.health,
-        maxHealth: this.gameState.maxHealth,
-        attack: this.gameState.attack,
-        defense: this.gameState.defense,
-        agility: this.gameState.agility,
-        charm: this.gameState.charm,
-        coins: this.gameState.coins,
-        reputation: this.gameState.reputation,
+          turn: this.gameState.turn,
+          longTermMemory: formattedLongTermMemory,
+          shortTermMemory: formattedShortTermMemory,
+          identity: this.gameState.identity,
+          level: this.gameState.level,
+          age: this.gameState.age,
+          health: this.gameState.health,
+          maxHealth: this.gameState.maxHealth,
+          attack: this.gameState.attack,
+          defense: this.gameState.defense,
+          agility: this.gameState.agility,
+          charm: this.gameState.charm,
+          coins: this.gameState.coins,
+          reputation: this.gameState.reputation,
           skills: (this.gameState.skills && this.gameState.skills.length > 0)
-            ? this.gameState.skills.map(s => s.name).join('; ')
-            : DEFAULT_VALUES.skills,
+              ? this.gameState.skills.map(s => s.name).join('; ')
+              : DEFAULT_VALUES.skills,
           items: (this.gameState.items && this.gameState.items.length > 0)
-           ? this.gameState.items.join('; ')
-           : DEFAULT_VALUES.items,
+              ? this.gameState.items.join('; ')
+              : DEFAULT_VALUES.items,
           achievements: (this.gameState.achievements && this.gameState.achievements.length > 0)
-                  ? this.gameState.achievements.filter(a => a.unlocked).map(a => a.id).join('; ')
-                  : DEFAULT_VALUES.achievements,
-        storySnippet: this.currentStoryText.slice(-250)
+              ? this.gameState.achievements.filter(a => a.unlocked).map(a => a.id).join('; ')
+              : DEFAULT_VALUES.achievements,
+          storySnippet: this.currentStoryText.slice(-250)
       };
-      
+
       // 生成最终提示词
       const finalPrompt = Object.entries(templateData).reduce(
-        (str, [key, value]) => str.replace(`{${key}}`, value),
-        END_PROMPT_TEMPLATE
+          (str, [key, value]) => str.replace(`{${key}}`, value),
+          END_PROMPT_TEMPLATE 
       );
-      
-      console.log(ERROR_MESSAGES.LOADING);
-      
-      try {
-        const params = { prompt: finalPrompt, model: this.model };
-        const res = await this.$post('/game/api/chat', params);
-        
-        if (res && res.text) { // <-- 这里进行了修改
-          this.currentStoryText = res.text;
-          this.currentChoices = [];
-          console.log("游戏结局:", res.text);
-        } else {
-          throw new Error("AI返回格式不正确");
-        }
-      } catch (error) {
-        console.error("生成游戏结局时发生错误:", error);
-        this.currentStoryText = ERROR_MESSAGES.AI_FAILED;
-        this.currentChoices = [];
-      } finally {
-        this.aiLoading = false;
-      }
-    },
 
+      console.log(ERROR_MESSAGES.LOADING);
+
+    try {
+      const params = { prompt: finalPrompt, model: this.model };
+
+      const res = await new Promise((resolve, reject) => {
+          this.$post('/game/api/chat', params, (res) => {
+              console.log("结局原始响应 (res):", res);
+              resolve(res);
+          });
+      });
+
+      const contentString = res.choices[0].message.content;
+      let finalStoryText = "";
+
+      if (contentString.trim().startsWith('{') && contentString.trim().endsWith('}')) {
+          try {
+              const parsedContent = JSON.parse(contentString);
+              if (parsedContent.summary) {
+                  finalStoryText = parsedContent.summary;
+              } else if (parsedContent.reasoning_content) {
+                  finalStoryText = parsedContent.reasoning_content;
+                  console.warn("AI返回的JSON中缺少'summary'字段，使用'reasoning_content'作为结局。");
+              } else {
+                  console.error("AI返回的JSON内容中未找到'summary'或'reasoning_content'字段:", parsedContent);
+                  throw new Error("AI返回的结局JSON内容格式不符合预期");
+              }
+          } catch (jsonError) {
+              console.error("解析AI返回的content JSON失败 (可能是格式错误):", jsonError, "原始content:", contentString);
+              finalStoryText = contentString;
+          }
+      } else {
+          finalStoryText = contentString;
+      }
+
+      if (finalStoryText.startsWith('"') && finalStoryText.endsWith('"')) {
+          finalStoryText = finalStoryText.slice(1, -1);
+      }
+
+      this.currentStoryText = finalStoryText;
+      this.currentChoices = [];
+      console.log("游戏结局:", this.currentStoryText);
+
+  } catch (error) {
+      console.error("生成游戏结局时发生错误:", error);
+      this.currentStoryText = ERROR_MESSAGES.AI_FAILED;
+      this.currentChoices = [];
+  } finally {
+      this.aiLoading = false;
+  }
+  },
   }
 }
 </script>
