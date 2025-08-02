@@ -150,6 +150,7 @@
 import gameApi from '@/api/gameApi.js';
 import gameStateManager from '@/game/gameStateManager.js';
 import aiProcessor from '@/game/aiProcessor.js';
+import loadingContent from '@/configs/loading_text.js';
 import { ERROR_MESSAGES } from '@/configs/end_prompt.js'; // 引入错误信息常量
 
 export default {
@@ -177,28 +178,11 @@ export default {
       defaultModelName: 'DeepSeek-R1-0528', // 默认模型名
 
       playerChoiceText: '',
-
       // 动态loading文字
-      currentLoadingText: '正在推演新的乱世...',
-      loadingTexts: [
-        '正在推演新的乱世...',
-        'AI正在思考你的选择...',
-        '正在生成精彩剧情...',
-        '正在计算命运轨迹...',
-        '正在编织故事线索...',
-        '正在分析局势变化...',
-        '正在构建世界细节...',
-        '正在推演历史进程...',
-        '正在生成角色反应...',
-        '正在计算战斗结果...',
-        '正在分析策略影响...',
-        '正在生成环境描述...',
-        '正在推演人物互动...',
-        '正在计算声望变化...',
-        '正在生成事件结果...'
-      ],
+      loadingTexts: loadingContent,
       loadingTextIndex: 0,
-      loadingTextInterval: null
+      currentLoadingText: '', 
+      loadingTextOpacity: 0,  
     };
   },
   mounted() {
@@ -483,50 +467,61 @@ export default {
 
         // 启动动态loading文字动画
     startLoadingTextAnimation() {
-      this.loadingTextIndex = 0;
-      this.currentLoadingText = this.loadingTexts[0];
+      this.loadingTextIndex = Math.floor(Math.random() * this.loadingTexts.length);
+      this._currentCharIndex = 0; // 从第一个字符开始
+      this.currentLoadingText = ''; // 初始化为空，准备逐字填充
+      this.loadingTextOpacity = 1; // 让文本容器可见
 
-      this.loadingTextInterval = setInterval(() => {
-        // 先淡出
-        const loadingTextEl = document.querySelector('.loading-text');
-        if (loadingTextEl) {
-          loadingTextEl.style.opacity = '0';
+      // 立即开始显示第一段文本
+      this._typeNextCharacter();
+    },
 
-          // 淡出后切换文字并淡入
-          setTimeout(() => {
-            this.loadingTextIndex = (this.loadingTextIndex + 1) % this.loadingTexts.length;
-            this.currentLoadingText = this.loadingTexts[this.loadingTextIndex];
+    // 逐字显示下一个字符
+    _typeNextCharacter() {
+      const fullText = this.loadingTexts[this.loadingTextIndex];
 
-            // 淡入
-            setTimeout(() => {
-              if (loadingTextEl) {
-                loadingTextEl.style.opacity = '1';
-              }
-            }, 100);
-          }, 300);
-        } else {
-          // 如果找不到元素，直接切换
-          this.loadingTextIndex = (this.loadingTextIndex + 1) % this.loadingTexts.length;
-          this.currentLoadingText = this.loadingTexts[this.loadingTextIndex];
-        }
-      }, 2500); // 每2.5秒切换一次文字
+      // 预防性检查，以防 loadingTexts 为空或索引越界
+      if (!fullText) {
+          this.stopLoadingTextAnimation();
+          return;
+      }
+
+      // 如果当前文本已全部显示
+      if (this._currentCharIndex >= fullText.length) {
+        // 清除逐字定时器
+        clearTimeout(this._typeInterval);
+        this._typeInterval = null;
+
+        // 设置定时器，等待一段时间后切换到下一段文本
+        this._nextSentenceTimeout = setTimeout(() => {
+          this.loadingTextIndex = (this.loadingTextIndex + 1) % this.loadingTexts.length; // 切换到下一个文本索引（循环）
+          this._currentCharIndex = 0; // 重置字符索引，为下一个文本做准备
+          this.currentLoadingText = ''; // 清空当前显示文本，准备新打字
+          this._typeNextCharacter(); // 开始显示下一个文本
+        }, 3000); // **每段文本完全显示后停留3秒** (可调整)
+        return;
+      }
+
+      // 逐步添加字符到 currentLoadingText
+      this.currentLoadingText = fullText.substring(0, this._currentCharIndex + 1);
+      this._currentCharIndex++;
+
+      // 设置定时器，继续显示下一个字符
+      this._typeInterval = setTimeout(() => {
+        this._typeNextCharacter();
+      }, 70); // **逐字显示速度：70毫秒/字符** (可调整)
     },
 
     // 停止动态loading文字动画
     stopLoadingTextAnimation() {
-      if (this.loadingTextInterval) {
-        clearInterval(this.loadingTextInterval);
-        this.loadingTextInterval = null;
-      }
-      // 重置为默认文字
-      this.currentLoadingText = '正在推演新的乱世...';
-      this.loadingTextIndex = 0;
+      // 清除所有相关的定时器，防止内存泄漏
+      clearTimeout(this._typeInterval);
+      clearTimeout(this._nextSentenceTimeout);
+      this._typeInterval = null;
+      this._nextSentenceTimeout = null;
 
-      // 确保opacity重置
-      const loadingTextEl = document.querySelector('.loading-text');
-      if (loadingTextEl) {
-        loadingTextEl.style.opacity = '1';
-      }
+      this.loadingTextOpacity = 0; // 隐藏文本容器
+      this.currentLoadingText = ''; // 清空当前显示的文本
     },
 
     async generateImage(prompt) {
