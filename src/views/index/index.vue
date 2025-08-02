@@ -17,8 +17,8 @@
     </div>
 
     <div class="game-ui">
-      <div class="game-area" v-loading="aiLoading">
-        <div class="loading" id="loading" v-if="aiLoading">
+      <div class="game-area">
+        <div class="loading" id="loading" :class="{ active: aiLoading }" v-show="aiLoading">
           <div class="loading-spinner"></div>
           <div class="loading-text">正在推演新的乱世...</div>
         </div>
@@ -55,6 +55,7 @@
           </div>
         </div>
       </div>
+
       <div class="stats-panel">
         <h2 class="panel-title">角色状态</h2>
         <div class="character-info">
@@ -162,7 +163,7 @@ export default {
       enableImageRendering: false,
       saveTime: '', // 会在加载时被设置
       maxGameTurns: 180, // 游戏回合数上限，需要根据游戏设计调整
-      
+
       // 长期记忆 (Long-Term Memory)
       longTermMemory: [],  // 存储总结后的LTM条目
       turnsSinceLastSummary: 0, // 记录距离上次总结的回合数
