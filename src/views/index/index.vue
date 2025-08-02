@@ -20,7 +20,7 @@
       <div class="game-area">
         <div class="loading" id="loading" :class="{ active: aiLoading }" v-show="aiLoading">
           <div class="loading-spinner"></div>
-          <div class="loading-text">正在推演新的乱世...</div>
+          <div class="loading-text">{{currentLoadingText}}</div>
         </div>
 
         <div class="image-settings-container">
@@ -176,11 +176,39 @@ export default {
       models: [],
       defaultModelName: 'DeepSeek-R1-0528', // 默认模型名
 
-      playerChoiceText: ''
+      playerChoiceText: '',
+
+      // 动态loading文字
+      currentLoadingText: '正在推演新的乱世...',
+      loadingTexts: [
+        '正在推演新的乱世...',
+        'AI正在思考你的选择...',
+        '正在生成精彩剧情...',
+        '正在计算命运轨迹...',
+        '正在编织故事线索...',
+        '正在分析局势变化...',
+        '正在构建世界细节...',
+        '正在推演历史进程...',
+        '正在生成角色反应...',
+        '正在计算战斗结果...',
+        '正在分析策略影响...',
+        '正在生成环境描述...',
+        '正在推演人物互动...',
+        '正在计算声望变化...',
+        '正在生成事件结果...'
+      ],
+      loadingTextIndex: 0,
+      loadingTextInterval: null
     };
   },
   mounted() {
     this.initGame();
+  },
+  beforeDestroy() {
+    // 清理定时器
+    if (this.loadingTextInterval) {
+      clearInterval(this.loadingTextInterval);
+    }
   },
   methods: {
     async initGame() {
@@ -320,6 +348,7 @@ export default {
 
     async loadScene(sceneKey, playerChoiceText = null) {
       this.aiLoading = true;
+      this.startLoadingTextAnimation();
 
       try {
         // 在状态更新前检查游戏是否已结束
@@ -420,6 +449,7 @@ export default {
         }
       } finally {
         this.aiLoading = false;
+        this.stopLoadingTextAnimation();
         // 无论成功失败，都尝试保存当前状态
         gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
         this.gameState = gameStateManager.updateIdentity(this.gameState); // 确保身份是最新的
@@ -428,6 +458,7 @@ export default {
 
     async handleGameEndByTurnLimit() {
       this.aiLoading = true;
+      this.startLoadingTextAnimation();
       try {
         const finalStoryText = await aiProcessor.endGameByTurnLimit(
           this.gameState,
@@ -444,8 +475,57 @@ export default {
         this.choices = [{ text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' }];
       } finally {
         this.aiLoading = false;
+        this.stopLoadingTextAnimation();
         gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
         this.gameState = gameStateManager.updateIdentity(this.gameState);
+      }
+    },
+
+        // 启动动态loading文字动画
+    startLoadingTextAnimation() {
+      this.loadingTextIndex = 0;
+      this.currentLoadingText = this.loadingTexts[0];
+
+      this.loadingTextInterval = setInterval(() => {
+        // 先淡出
+        const loadingTextEl = document.querySelector('.loading-text');
+        if (loadingTextEl) {
+          loadingTextEl.style.opacity = '0';
+
+          // 淡出后切换文字并淡入
+          setTimeout(() => {
+            this.loadingTextIndex = (this.loadingTextIndex + 1) % this.loadingTexts.length;
+            this.currentLoadingText = this.loadingTexts[this.loadingTextIndex];
+
+            // 淡入
+            setTimeout(() => {
+              if (loadingTextEl) {
+                loadingTextEl.style.opacity = '1';
+              }
+            }, 100);
+          }, 300);
+        } else {
+          // 如果找不到元素，直接切换
+          this.loadingTextIndex = (this.loadingTextIndex + 1) % this.loadingTexts.length;
+          this.currentLoadingText = this.loadingTexts[this.loadingTextIndex];
+        }
+      }, 2500); // 每2.5秒切换一次文字
+    },
+
+    // 停止动态loading文字动画
+    stopLoadingTextAnimation() {
+      if (this.loadingTextInterval) {
+        clearInterval(this.loadingTextInterval);
+        this.loadingTextInterval = null;
+      }
+      // 重置为默认文字
+      this.currentLoadingText = '正在推演新的乱世...';
+      this.loadingTextIndex = 0;
+
+      // 确保opacity重置
+      const loadingTextEl = document.querySelector('.loading-text');
+      if (loadingTextEl) {
+        loadingTextEl.style.opacity = '1';
       }
     },
 

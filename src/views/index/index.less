@@ -520,6 +520,11 @@ h1 {
     font-weight: 500;
     text-shadow: 0 0 10px rgba(90, 141, 159, 0.5);
     animation: pulse 2s ease-in-out infinite;
+    transition: opacity 0.3s ease-in-out;
+    min-height: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @keyframes pulse {
@@ -721,6 +726,7 @@ footer {
 
     .loading-text {
         font-size: 1rem;
+        min-height: 1.3em;
     }
 
     .api-settings-container {
