@@ -14,7 +14,7 @@ let shortQuestQueueTimeDuration = 200;  //ms，短期操作过的队列的判定
 
 const instance = axios.create(axiosConfig)
 
-// 请求前的拦截，处理各种验证，显示loading
+// 请求前的拦截，处理各种验证
 instance.interceptors.request.use(config => {
   let existSameQuest = validQuestQueue(config); //是否存在同样的请求
   if(existSameQuest) {
@@ -25,7 +25,6 @@ instance.interceptors.request.use(config => {
 
   config.data = JSON.stringify(config.data)
   questQuery += 1
-  app.$loading()
   return config
 }, error => {
   app.$message.error('未能通过服务器验证')
@@ -34,7 +33,7 @@ instance.interceptors.request.use(config => {
 
 /**
  * 检查是否短期内存在同样的请求，如果是的话就不让请求了
- * @param {Object} config 
+ * @param {Object} config
  */
 const validQuestQueue = config => {
   let currentTime = (new Date()).getTime();  //请求的时间节点
@@ -63,13 +62,12 @@ const validQuestQueue = config => {
 
 }
 
-// 请求后的拦截，隐藏loading
+// 请求后的拦截
 instance.interceptors.response.use(res => {
   questQuery -= 1
-  // 队列长度为0，所有请求执行完毕，隐藏loading
+  // 队列长度为0，所有请求执行完毕
   // eslint-disable-next-line
   if (questQuery <= 0) {
-    app.$loading().close();
     questQuery = 0;
   }
 
@@ -77,12 +75,11 @@ instance.interceptors.response.use(res => {
   return res
 }, error => {
   questQuery -= 1
-  // 队列长度为0，所有请求执行完毕，隐藏loading
+  // 队列长度为0，所有请求执行完毕
   if (questQuery <= 0) {
-    app.$loading().close();
     questQuery = 0;
   }
-  
+
   if(error != '操作频繁') app.$message.error('请求出错'); //多一步判定，操作频繁不用弹错
   // return异常信息,为下面的方法能catch到错误信息
   return Promise.reject(error)
@@ -114,7 +111,7 @@ const post = (url, data, handler, errorHandler) => {
 
 const slientInstance = axios.create(axiosConfig)
 
-// 请求前的拦截，处理各种验证，显示loading
+// 请求前的拦截，处理各种验证
 slientInstance.interceptors.request.use(config => {
   let existSameQuest = validQuestQueue(config); //是否存在同样的请求
   if(existSameQuest) {
@@ -135,7 +132,7 @@ slientInstance.interceptors.request.use(config => {
   return Promise.reject(error)
 })
 
-// 请求后的拦截，隐藏loading
+// 请求后的拦截
 slientInstance.interceptors.response.use(res => {
   return res
 }, error => {

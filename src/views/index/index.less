@@ -59,6 +59,7 @@ h1 {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    isolation: isolate;
 }
 
 .scene-container {
@@ -475,31 +476,37 @@ h1 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(13, 13, 26, 0.9);
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 10;
-    opacity: 0;
+    z-index: 3000;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    opacity: 0;
+    transition: all 0.4s ease-in-out;
     border-radius: 8px;
+    backdrop-filter: blur(3px);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
 .loading.active {
     opacity: 1;
     pointer-events: all;
+    background: rgba(0, 0, 0, 0.8);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
 }
 
 .loading-spinner {
-    width: 40px; /* Slightly smaller */
-    height: 40px; /* Slightly smaller */
-    border: 4px solid rgba(90, 141, 159, 0.3);
-    border-top: 4px solid var(--primary-color);
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(90, 141, 159, 0.2);
+    border-top: 3px solid var(--primary-color);
+    border-right: 3px solid var(--accent-color);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 15px; /* Reduced margin */
+    animation: spin 1.2s linear infinite;
+    margin-bottom: 20px;
+    box-shadow: 0 0 15px rgba(90, 141, 159, 0.3);
 }
 
 @keyframes spin {
@@ -507,9 +514,22 @@ h1 {
 }
 
 .loading-text {
-    font-size: 1rem; /* Slightly smaller font size */
+    font-size: 1.1rem;
     color: var(--primary-color);
     text-align: center;
+    font-weight: 500;
+    text-shadow: 0 0 10px rgba(90, 141, 159, 0.5);
+    animation: pulse 2s ease-in-out infinite;
+    transition: opacity 0.3s ease-in-out;
+    min-height: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
 }
 
 footer {
@@ -547,12 +567,12 @@ footer {
         font-size: 0.9rem; /* Smaller subtitle on mobile */
     }
 
-    .game-ui { 
-        grid-template-columns: 1fr; 
+    .game-ui {
+        grid-template-columns: 1fr;
         padding: 10px; /* More compact overall game UI padding */
         gap: 15px; /* Reduced gap */
     }
-    
+
     .game-area {
         padding: 15px; /* More compact game area padding */
     }
@@ -573,11 +593,11 @@ footer {
         min-height: 100px; /* Adjusted min-height */
     }
 
-    .choices-container { 
+    .choices-container {
         grid-template-columns: 1fr; /* Stack choices vertically */
         gap: 10px; /* Reduced gap */
     }
-    
+
     .choice-btn {
         padding: 12px 15px; /* Adjusted padding */
         font-size: 0.85rem; /* Adjusted font size */
@@ -601,7 +621,7 @@ footer {
         font-size: 0.8rem; /* Adjusted font size */
         gap: 6px;
     }
-    
+
     .stats-panel {
         padding: 15px; /* More compact stats panel padding */
         gap: 15px; /* Maintained for clarity between sections */
@@ -683,17 +703,30 @@ footer {
     .status-value {
         font-size: 1.1rem; /* Reduced font size */
     }
-    
+
     .game-controls {
         flex-direction: column; /* Stack buttons vertically on mobile */
         gap: 10px;
         margin: 15px 0;
         padding: 10px;
     }
-    
+
     .control-btn {
         padding: 10px 15px;
         font-size: 0.9rem;
+    }
+
+    /* 移动端loading优化 */
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border-width: 2px;
+        margin-bottom: 15px;
+    }
+
+    .loading-text {
+        font-size: 1rem;
+        min-height: 1.3em;
     }
 
     .api-settings-container {
