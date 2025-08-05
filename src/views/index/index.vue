@@ -8,7 +8,7 @@
 
     <div class="status-bar">
       <div class="status-item"><span>铜钱</span><span class="status-value">{{gameState.coins}}</span></div>
-      <div class="status-item"><span>声望</span><span class="status-value">{{gameState.reputation}}</span></div>
+      <div class="status-item"><span>兵力</span><span class="status-value">{{gameState.troops}}</span></div>
       <div class="status-item"><span>身份</span><span class="status-value">{{gameState.identity}}</span></div>
     </div>
 
@@ -146,12 +146,11 @@
 </template>
 
 <script>
-// 引入拆分后的模块
 import gameApi from '@/api/gameApi.js';
 import gameStateManager from '@/game/gameStateManager.js';
 import aiProcessor from '@/game/aiProcessor.js';
 import loadingContent from '@/configs/loading_text.js';
-import { ERROR_MESSAGES } from '@/configs/end_prompt.js'; // 引入错误信息常量
+import { ERROR_MESSAGES } from '@/configs/end_prompt.js'; 
 
 export default {
   data() {
@@ -324,8 +323,7 @@ export default {
         return;
       }
 
-      // 添加到大事记 (此处先添加，让AI生成结果后再统一更新)
-
+      // 添加到大事记
       this.loadScene('custom', customText);
       this.playerChoiceText = ''; // 清空输入框
     },
@@ -335,16 +333,11 @@ export default {
       this.startLoadingTextAnimation();
 
       try {
-        // 在状态更新前检查游戏是否已结束
-        if (this.gameState.health <= 0) {
-          this.currentStoryText = "你倒在血泊之中，意识逐渐模糊... 你的冒险已在此终结。";
-          this.choices = [{ text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' }];
-          this.aiLoading = false;
-          gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
-          return;
-        }
-
-        if (this.gameState.turn >= this.maxGameTurns && this.maxGameTurns > 0) { // 检查回合数上限
+        // 检查游戏是否结束（生命值为0或超过回合数上限）
+        if (
+          this.gameState.health <= 0 ||
+          (this.gameState.turn >= this.maxGameTurns && this.maxGameTurns > 0)
+        ) {
           await this.handleGameEndByTurnLimit();
           this.choices = [{ text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' }];
           this.aiLoading = false;
@@ -359,10 +352,16 @@ export default {
             try {
                 const summary = await aiProcessor.generateLongTermMemory(logsToSummarize, this.selectedModel || this.defaultModelName);
                 if (summary) {
-                    this.longTermMemory.unshift(summary);
-                    if (this.longTermMemory.length > this.ltmMaxSize) {
-                        this.longTermMemory.pop(); // 移除最旧的记忆
-                    }
+                  const compressedSummary = await aiProcessor.generateCompressedMemory(
+                    this.longTermMemory,
+                    this.selectedModel || this.defaultModelName
+                  );
+                  if (compressedSummary) {
+                    // 清空旧LTM，只保留压缩后的总结
+                    this.longTermMemory = [compressedSummary];
+                  }
+                    // 插入新的一条长时记忆
+                    this.longTermMemory.unshift(summary);             
                 }
             } catch (sumError) {
                 console.warn("生成长时记忆失败，但游戏继续:", sumError);

@@ -53,7 +53,7 @@ For a detailed explanation on how things work, check out the [guide](http://vuej
 | 统率 (Agility) | 军队调度、速度、追击逃脱 |
 | 魅力 (Charm) | 招募人才、外交谈判 |
 | 铜钱 (Coins) | 基础资源，用于建设与交易 |
-| 声望 (Reputation) | 解锁高阶剧情与人脉资源 |
+| 兵力 (Troops) | 私兵数量 |
 | 身份 (Identity) | 玩家社会地位，如布衣、县尉、州牧、丞相等 |
 
 ### 📆 人生阶段与回合系统

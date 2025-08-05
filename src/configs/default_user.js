@@ -10,7 +10,7 @@ const defaultUserInfos = {
     agility: 5,
     charm: 5,
     coins: 50,
-    reputation: 0,
+    troops: 0,
     level: 1, 
     skills: [
         {
