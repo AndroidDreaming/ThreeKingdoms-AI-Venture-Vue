@@ -11,7 +11,7 @@ const defaultUserInfos = {
     charm: 5,
     coins: 50,
     troops: 0,
-    level: 1, 
+    level: 1,
     skills: [
         {
             name: "基础拳法",
@@ -34,9 +34,9 @@ const defaultUserInfos = {
         { id: 'breakthrough_foundation', text: '一方豪强: 成功占领一县之地或聚拢一批追随者', unlocked: false },
 
         // 探索与机遇
-        { id: 'found_hidden_cave', text: '奇遇迭出: 发现一处隐秘的洞窟，内藏珍稀宝物', unlocked: false }, 
+        { id: 'found_hidden_cave', text: '奇遇迭出: 发现一处隐秘的洞窟，内藏珍稀宝物', unlocked: false },
         { id: 'found_ancient_ruin', text: '寻访古迹: 深入人迹罕至之地，发现一处荒废的古战场或前朝遗址', unlocked: false },
-        { id: 'met_mysterious_master', text: '三顾茅庐: 发现并成功招募到一位隐世不出的贤才', unlocked: false }, 
+        { id: 'met_mysterious_master', text: '三顾茅庐: 发现并成功招募到一位隐世不出的贤才', unlocked: false },
         { id: 'survive_miasma_swamp', text: '化险为夷: 成功穿越危机四伏的山岭或沼泽地带', unlocked: false },
 
         // 财富与资历
@@ -72,5 +72,5 @@ const defaultUserInfos = {
 };
 
 export {
-  defaultUserInfos
+    defaultUserInfos
 }

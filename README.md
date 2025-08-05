@@ -97,7 +97,7 @@ For a detailed explanation on how things work, check out the [guide](http://vuej
     "agility": 5,
     "charm": 4,
     "coins": 150,
-    "reputation": 20,
+    "troops": 0,
     "identity": "县尉",
     "skills": [{"name": "火攻", "description": "引燃敌营造成混乱", "icon": "fa-solid fa-fire"}],
     "items": ["引火油", "夜行衣"],

@@ -22,7 +22,7 @@ export const END_PROMPT_TEMPLATE = `
     - 统率 {agility}
     - 魅力 {charm}
     - 铜钱 {coins}
-    - 声望 {reputation}
+    - 声望 {troops}
 - **习得战法:** {skills}
 - **持有物品:** {items}
 - **已解锁成就:** {achievements}

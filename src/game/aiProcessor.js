@@ -236,7 +236,7 @@ export default {
       agility: gameState.agility,
       charm: gameState.charm,
       coins: gameState.coins,
-      reputation: gameState.reputation,
+      troops: gameState.troops,
       skills: (gameState.skills && gameState.skills.length > 0)
         ? gameState.skills.map(s => s.name).join('; ')
         : DEFAULT_VALUES.skills,
