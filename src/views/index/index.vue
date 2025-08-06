@@ -332,6 +332,7 @@ export default {
     },
 
     async loadScene(sceneKey, playerChoiceText = null) {
+        console.log('开始生成场景...');
       this.aiLoading = true;
       this.startLoadingTextAnimation();
 

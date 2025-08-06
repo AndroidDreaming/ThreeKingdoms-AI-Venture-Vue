@@ -20,8 +20,6 @@ export default {
 
       // 2. 如果有保存数据，解析并处理
       const saveData = JSON.parse(cultivationGameSave);
-
-
       saveData.gameState = { ...defaultUserInfos, ...saveData.gameState };
 
       // 检查游戏是否结束
@@ -169,6 +167,28 @@ export default {
           }
         });
       }
+
+          //人物关系
+      if (updates.relationships && Array.isArray(updates.relationships)) {
+        updates.relationships.forEach(newRel => {
+        const existingRelIndex = gameState.relationships.findIndex(r => r.name === newRel.name);
+        if (existingRelIndex !== -1) {
+          // 如果关系已存在，则更新其状态和描述
+          gameState.relationships[existingRelIndex] = {
+            ...gameState.relationships[existingRelIndex], // 保留原有属性
+            status: newRel.status || gameState.relationships[existingRelIndex].status,
+            description: newRel.description || gameState.relationships[existingRelIndex].description,
+          };
+        } else {
+          // 如果是新关系，则添加
+          gameState.relationships.push({
+            name: newRel.name,
+            status: newRel.status || "未知", // 默认状态
+            description: newRel.description || "新人物", // 默认描述
+          });
+        }
+      });
+    }
     }
 
     if (content.itemUpdates) {
@@ -233,6 +253,7 @@ export default {
       gameState.turn++;
       gameState.adventureLog.push({ turn: gameState.turn, entry: content.logEntry });
     }
+
 
     return gameState;
   }

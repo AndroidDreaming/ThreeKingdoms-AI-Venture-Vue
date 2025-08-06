@@ -47,6 +47,7 @@ export default {
 
   // 生成冒险场景
   async generateAdventure(params) {
+    console.log('开始生成冒险场景')
     const { gameState, previousStoryText, playerChoiceText, longTermMemory, model } = params;
 
     const currentPrompt = promptGenerator.getPrompt({

@@ -24,6 +24,7 @@ const defaultUserInfos = {
             icon: "fa-solid fa-wind"
         }
     ],
+    relationships:[],
     items: [],
     achievements: [
         // 基础功绩
