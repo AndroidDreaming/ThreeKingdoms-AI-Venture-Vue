@@ -155,14 +155,14 @@ export default {
           text: extractedText,
           imagePrompt: "A mystical Chinese cultivation world with swirling mists and ancient mountains, ink wash painting style",
           choices: [
-            { text: "🔄 重新尝试", value: "retry", type: "retry" },
-            { text: "🏠 返回起点", value: "start", type: "start" },
-            { text: "继续探索", value: "continue", type: "continue" }
+            { text: "原地休息", value: "休息", type: "relax" },
+            { text: "发了一小会呆", value: "等待", type: "start" },
+            { text: "破开迷雾继续出发", value: "继续", type: "continue" }
           ],
           gameStateUpdates: {},
           itemUpdates: { add: [], remove: [] },
           unlockAchievements: [],
-          logEntry: "遇到了一些技术问题，但冒险仍在继续..."
+          // logEntry: "遇到了一些技术问题，但冒险仍在继续..."
         }
       };
     }

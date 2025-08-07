@@ -82,24 +82,8 @@ export default {
       gameState.adventureLog = [];
     }
 
-    // 更新身份/地位显示
-    if (gameState.level > 30) {
-      gameState.identity = '帝王';
-    } else if (gameState.level > 25) {
-      gameState.identity = '丞相/大将军';
-    } else if (gameState.level > 20) {
-      gameState.identity = '州牧/太守';
-    } else if (gameState.level > 15) {
-      gameState.identity = '郡守/刺史';
-    } else if (gameState.level > 10) {
-      gameState.identity = '校尉/都尉';
-    } else if (gameState.level > 5) {
-      gameState.identity = '县令/亭长';
-    } else if (gameState.level > 1) {
-      gameState.identity = '乡绅/里正';
-    } else {
-      gameState.identity = '布衣';
-    }
+    // 更新身份/地位显示，暂时取消
+
     return gameState; // 返回更新后的状态
   },
 
@@ -111,7 +95,7 @@ export default {
       const updates = content.gameState;
 
       // 直接设置数值属性
-      ['health', 'gender', 'maxHealth', 'attack', 'defense', 'agility', 'charm', 'coins', 'troops', 'level'].forEach(key => {
+      ['health', 'attack', 'defense', 'agility', 'charm', 'coins', 'troops'].forEach(key => {
         if (updates[key] !== undefined) {
           gameState[key] = Number(updates[key]);
         }
@@ -168,27 +152,27 @@ export default {
         });
       }
 
-          //人物关系
+      //人物关系
       if (updates.relationships && Array.isArray(updates.relationships)) {
         updates.relationships.forEach(newRel => {
-        const existingRelIndex = gameState.relationships.findIndex(r => r.name === newRel.name);
-        if (existingRelIndex !== -1) {
-          // 如果关系已存在，则更新其状态和描述
-          gameState.relationships[existingRelIndex] = {
-            ...gameState.relationships[existingRelIndex], // 保留原有属性
-            status: newRel.status || gameState.relationships[existingRelIndex].status,
-            description: newRel.description || gameState.relationships[existingRelIndex].description,
-          };
-        } else {
-          // 如果是新关系，则添加
-          gameState.relationships.push({
-            name: newRel.name,
-            status: newRel.status || "未知", // 默认状态
-            description: newRel.description || "新人物", // 默认描述
-          });
-        }
-      });
-    }
+          const existingRelIndex = gameState.relationships.findIndex(r => r.name === newRel.name);
+          if (existingRelIndex !== -1) {
+            // 如果关系已存在，则更新其状态和描述
+            gameState.relationships[existingRelIndex] = {
+              ...gameState.relationships[existingRelIndex], // 保留原有属性
+              status: newRel.status || gameState.relationships[existingRelIndex].status,
+              description: newRel.description || gameState.relationships[existingRelIndex].description,
+            };
+          } else {
+            // 如果是新关系，则添加
+            gameState.relationships.push({
+              name: newRel.name,
+              status: newRel.status || "未知", // 默认状态
+              description: newRel.description || "新人物", // 默认描述
+            });
+          }
+        });
+      }
     }
 
     if (content.itemUpdates) {

@@ -430,8 +430,8 @@ export default {
           this.currentStoryText = ERROR_MESSAGES.AI_FAILED;
           this.choices = [
             { text: "🔄 重新尝试", value: "retry", type: "retry" },
-            { text: "🏠 返回起点", value: "start", type: "start" },
-            { text: "继续探索", value: "continue", type: "continue" }
+            // { text: "🏠 返回起点", value: "start", type: "start" },
+            { text: "破开迷雾继续前进", value: "continue", type: "continue" }
           ];
         }
       } finally {
