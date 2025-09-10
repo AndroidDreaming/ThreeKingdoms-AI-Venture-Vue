@@ -1,28 +1,18 @@
 <template>
   <div class="game-page">
-    <header>
-      <h1>{{$gameTitle}}</h1>
-      <p class="subtitle">{{$gameSubtitle}}</p>
-      <p class="version">版本：{{$gameVision}}</p>
-    </header>
-
-    <div class="status-bar">
-      <div class="status-item"><span>铜钱</span><span class="status-value">{{gameState.coins}}</span></div>
-      <div class="status-item"><span>兵力</span><span class="status-value">{{gameState.troops}}</span></div>
-      <div class="status-item"><span>身份</span><span class="status-value">{{gameState.identity}}</span></div>
-    </div>
-
+    <GameHeader />
+    <StatusBar :gameState="gameState" />
+    
+    <MusicPlayer />
+    
     <div class="game-controls">
       <el-button id="reset-game-btn" class="control-btn start-btn" @click="resetGame">🔄 重开局势</el-button>
     </div>
 
     <div class="game-ui">
       <div class="game-area">
-        <div class="loading" id="loading" :class="{ active: aiLoading }" v-show="aiLoading">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">{{currentLoadingText}}</div>
-        </div>
-
+        <LoadingIndicator v-if="aiLoading" />
+        
         <div class="image-settings-container">
           <h3 class="panel-title">场景图片设置</h3>
           <div class="image-settings">
@@ -35,168 +25,103 @@
           </p>
         </div>
 
-        <div v-if="enableImageRendering" class="scene-container">
-          <img id="scene-img" :src="currentSceneImg" alt="场景图片">
-        </div>
-        <div class="story-text" id="story-text">
-          {{currentStoryText}}
-        </div>
-        <div class="choices-container" id="choices-container">
-          <div v-for="(item, index) in choices" class="choice-btn" :key="index" @click="confirmChoice(item)">{{item.text}}</div>
-        </div>
-
-        <div class="custom-choice-container">
-          <div class="custom-choice-label">
-            <i class="fas fa-pen"></i> 或自行决定行动：
-          </div>
-          <div class="custom-input-box">
-            <el-input v-model="playerChoiceText" id="custom-choice-input" placeholder="输入你的行动（如：拜访贤士、招募兵卒、侦察敌情...）" @keyup.enter.native="confirmChoiceText"></el-input>
-            <el-button id="submit-custom-choice" @click="confirmChoiceText">提交</el-button>
-          </div>
-        </div>
+        <ImageAndText 
+          :current-scene-img="currentSceneImg" 
+          :current-story-text="currentStoryText" 
+          :enable-image-rendering="enableImageRendering" 
+        />
+        <ChoicesAndInput 
+          :choices="choices" 
+          :player-choice-text.sync="playerChoiceText" 
+          @choice-selected="confirmChoice" 
+          @custom-choice-submitted="confirmChoiceText" 
+        />
       </div>
 
       <div class="stats-panel">
-        <h2 class="panel-title">角色状态</h2>
-        <div class="character-info">
-          <div class="char-header">
-            <div class="char-icon">👤</div>
-            <div id="char-name" class="char-name">{{'当前回合数：'+gameState.turn}}</div>
-          </div>
-          <div class="health-bar">
-            <div id="health-bar" class="health-fill" :style="{ width: (gameState.health / gameState.maxHealth * 100) + '%' }"></div>
-            <div id="health-text" class="health-text">体力: {{gameState.health}}/{{gameState.maxHealth}}</div>
-          </div>
-          <div class="stats-grid">
-            <div class="stat-item"><span>武力</span><span id="attack-value" class="stat-value">{{gameState.attack}}</span></div>
-            <div class="stat-item"><span>智力</span><span id="defense-value" class="stat-value">{{gameState.defense}}</span></div>
-            <div class="stat-item"><span>统率</span><span id="agility-value" class="stat-value">{{gameState.agility}}</span></div>
-            <div class="stat-item"><span>魅力</span><span id="charm-value" class="stat-value">{{gameState.charm}}</span></div>
-          </div>
-        </div>
-        <div class="skills-container">
-          <h3 class="panel-title">战法/计策</h3>
-          <div id="skills-list" class="scrollable-content">
-            <div v-if="!gameState.skills || gameState.skills.length === 0">尚未习得任何战法或计策</div>
-            <div v-for="(skill, index) in gameState.skills" :key="index">
-              <div class="skill-name"><i :class="skill.icon || 'fa-solid fa-book'"></i> {{skill.name}}</div>
-              <div class="skill-description">{{skill.description}}</div>
-            </div>
-          </div>
-        </div>
-        <div class="inventory-container">
-          <h3 class="panel-title">行囊</h3>
-          <div id="items-grid" class="scrollable-content">
-            <div v-if="!gameState.items || gameState.items.length === 0" class="list-item">行囊空空...</div>
-            <div v-for="(item, index) in gameState.items" class="list-item" :key="index">
-              <div class="list-icon">
-                <i class="fa-solid fa-box"></i>
-              </div>
-              <div class="list-content">
-                <div class="list-name">
-                  {{item.name}}
-                  <span class="list-count">x{{item.count}}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="achievement-container">
-          <h3 class="panel-title">功绩</h3>
-          <div id="achievement-list" class="scrollable-content">
-            <div v-if="!gameState.achievements || gameState.achievements.length === 0">尚无功绩可言</div>
-            <template v-for="(achievement, index) in gameState.achievements">
-              <div v-if="achievement.unlocked" class="achievement-text" :key="index">• {{achievement.text}}</div>
-            </template>
-          </div>
-        </div>
-        <div class="adventure-log-container">
-          <h3 class="panel-title">大事记</h3>
-          <div id="adventure-log" class="scrollable-content">
-            <div v-if="!gameState.adventureLog || gameState.adventureLog.length === 0">天下大事，由你书写...</div>
-            <div v-for="(log, index) in gameState.adventureLog" :key="index" class="adventure-log-text">• {{log.entry}}</div>
-          </div>
-        </div>
+        <CharacterPanel :gameState="gameState" />
+        <NPCCharacterCard @npc-click="handleNPCInteraction" />
+        <SkillsAndItems :skills="gameState.skills" :items="gameState.items" />
+        <GameLog :achievements="gameState.achievements" :adventure-log="gameState.adventureLog" />
       </div>
     </div>
 
-    <div class="api-settings-container">
-      <h3 class="panel-title">AI模型设置</h3>
-      <p id="api-settings-hint" style="font-size: 0.9rem; color: #888; margin-bottom: 15px;">
-        🔒 默认使用安全的后端API，无需配置。<br>
-        如需使用自定义API，请填写以下信息（配置仅存于前端浏览器，无需担心泄露）：
-      </p>
-      <div class="api-settings">
-        <input type="text" id="api-url-input" placeholder="自定义API URL (可选)" v-model="customApiUrl">
-        <select id="model-input" class="api-settings-select" v-model="selectedModel">
-          <option disabled value="">请选择一个模型</option>
-          <option v-for="model in models" :key="model.id" :value="model.id">
-            {{ model.id }}
-          </option>
-        </select>
-        <input type="password" id="api-key-input" placeholder="自定义API Key (可选)" v-model="customApiKey">
-        <button id="save-api-btn" @click="saveApiSettings">保存</button>
-        <button id="clear-api-btn" @click="clearApiSettings">清除</button>
-      </div>
-    </div>
-    <footer>
-      享受你的游戏
-    </footer>
+    <ApiSettings
+      :models="models"
+      :custom-api-url.sync="customApiUrl"
+      :custom-api-key.sync="customApiKey"
+      :selected-model.sync="selectedModel"
+      @save="saveApiSettings"
+      @clear="clearApiSettings"
+    />
+    
+    <footer>享受你的游戏</footer>
   </div>
 </template>
 
 <script>
-// 引入拆分后的模块
+// 引入拆分后的模块和组件
 import gameApi from '@/api/gameApi.js';
 import gameStateManager from '@/game/gameStateManager.js';
 import aiProcessor from '@/game/aiProcessor.js';
-import loadingContent from '@/configs/loading_text.js';
-import { ERROR_MESSAGES } from '@/configs/end_prompt.js'; // 引入错误信息常量
+import { ERROR_MESSAGES } from '@/configs/end_prompt.js';
+
+import GameHeader from '@/components/GameHeader.vue';
+import StatusBar from '@/components/StatusBar.vue';
+import CharacterPanel from '@/components/CharacterPanel.vue';
+import SkillsAndItems from '@/components/SkillsAndItems.vue';
+import GameLog from '@/components/GameLog.vue';
+import ImageAndText from '@/components/ImageAndText.vue';
+import ChoicesAndInput from '@/components/ChoicesAndInput.vue';
+import ApiSettings from '@/components/ApiSettings.vue';
+import LoadingIndicator from '@/components/LoadingIndicator.vue';
+import MusicPlayer from '@/components/MusicPlayer.vue';
+import NPCCharacterCard from '@/components/NPCCharacterCard.vue';
 
 export default {
+  components: {
+    GameHeader,
+    StatusBar,
+    CharacterPanel,
+    SkillsAndItems,
+    GameLog,
+    ImageAndText,
+    ChoicesAndInput,
+    ApiSettings,
+    LoadingIndicator,
+    MusicPlayer,
+    NPCCharacterCard,
+  },
   data() {
     return {
-      gameState: {}, // 初始状态在 mounted 中从 gameStateManager 加载
+      gameState: {},
       aiLoading: false,
       currentStoryText: '',
       currentSceneImg: '',
       choices: [],
       enableImageRendering: false,
-      saveTime: '', // 会在加载时被设置
-      maxGameTurns: 180, // 游戏回合数上限，需要根据游戏设计调整
+      playerChoiceText: '',
 
-      // 长期记忆 (Long-Term Memory)
-      longTermMemory: [],  // 存储总结后的LTM条目
-      turnsSinceLastSummary: 0, // 记录距离上次总结的回合数
-      lsummaryInterval: 10, // 每隔10回合总结一次
-      ltmMaxSize: 3,       // LTM 最大存储总结条目数 (当达到此上限时，会触发LTM自身的总结)
-
+      // API设置相关数据
       customApiUrl: localStorage.getItem('customApiUrl') || '',
       customApiKey: localStorage.getItem('customApiKey') || '',
       selectedModel: localStorage.getItem('selectedModel') || '',
       models: [],
-      defaultModelName: 'DeepSeek-R1-0528', // 默认模型名
+      defaultModelName: 'DeepSeek-R1-0528',
 
-      playerChoiceText: '',
-      // 动态loading文字
-      loadingTexts: loadingContent,
-      loadingTextIndex: 0,
-      currentLoadingText: '', 
-      loadingTextOpacity: 0,  
+      // 游戏状态管理相关数据
+      longTermMemory: [],
+      turnsSinceLastSummary: 0,
+      lsummaryInterval: 10,
+      ltmMaxSize: 3,
+      maxGameTurns: 180,
     };
   },
   mounted() {
     this.initGame();
   },
-  beforeDestroy() {
-    // 清理定时器
-    if (this.loadingTextInterval) {
-      clearInterval(this.loadingTextInterval);
-    }
-  },
   methods: {
     async initGame() {
-      // 1. 加载游戏状态
       const loadedState = gameStateManager.loadGameState();
       this.gameState = loadedState.gameState;
       this.currentStoryText = loadedState.currentStoryText;
@@ -204,38 +129,21 @@ export default {
       this.choices = loadedState.currentChoices;
       this.saveTime = loadedState.saveTime;
 
-      // 如果是新游戏，或者游戏已经结束，则更新身份
       if (!loadedState.saveTime || this.gameState.health <= 0) {
         this.gameState = gameStateManager.updateIdentity(this.gameState);
       }
-
-      // 2. 获取配置和模型
-      await this.getConfigs();
-      await this.getModels();
+      await this.getConfigsAndModels();
     },
 
-    async getConfigs() {
+    async getConfigsAndModels() {
       try {
-        const data = await gameApi.getGameConfig();
-        this.defaultModelName = data.defaultModel || 'DeepSeek-R1-0528';
-        if (!this.selectedModel && this.defaultModelName && this.models.length === 0) {
-          this.selectedModel = this.defaultModelName;
-        }
-      } catch (error) {
-        console.error('获取配置失败:', error);
-        this.defaultModelName = 'DeepSeek-R1-0528'; // 获取失败时，设置一个默认值
-      }
-    },
+        const configData = await gameApi.getGameConfig();
+        this.defaultModelName = configData.defaultModel || 'DeepSeek-R1-0528';
 
-    async getModels() {
-      try {
-        const res = await gameApi.getModelsList();
-        const rawData = (res && Array.isArray(res.data)) ? res.data : [];
-        this.models = JSON.parse(JSON.stringify(rawData)); // 深拷贝
+        const modelsRes = await gameApi.getModelsList();
+        this.models = (modelsRes && Array.isArray(modelsRes.data)) ? modelsRes.data : [];
 
         const savedModel = localStorage.getItem('selectedModel');
-
-        // 模型选择的优先级逻辑
         if (savedModel && this.models.some(model => model.id === savedModel)) {
           this.selectedModel = savedModel;
         } else if (this.defaultModelName && this.models.some(model => model.id === this.defaultModelName)) {
@@ -246,7 +154,7 @@ export default {
           this.selectedModel = '无法加载模型或无可用模型';
         }
       } catch (error) {
-        console.error('获取模型列表失败:', error);
+        console.error('获取配置或模型失败:', error);
         this.models = [];
         this.selectedModel = '获取模型失败';
       }
@@ -257,11 +165,6 @@ export default {
       localStorage.setItem('customApiKey', this.customApiKey);
       localStorage.setItem('selectedModel', this.selectedModel);
       alert('API 设置已保存！');
-      console.log('API Settings Saved:', {
-        url: this.customApiUrl,
-        key: this.customApiKey,
-        model: this.selectedModel
-      });
     },
 
     clearApiSettings() {
@@ -270,14 +173,12 @@ export default {
       localStorage.removeItem('selectedModel');
       this.customApiUrl = '';
       this.customApiKey = '';
-      this.selectedModel = ''; // 清除选择的模型
+      this.selectedModel = '';
       alert('API 设置已清除！');
-      console.log('API Settings Cleared.');
     },
 
     confirmChoice(item) {
-      if (this.aiLoading) return; // 防止重复点击
-
+      if (this.aiLoading) return;
       if (item.type === 'retry') {
         this.resetGame();
       } else if (item.type === 'refresh') {
@@ -285,6 +186,24 @@ export default {
       } else {
         this.handleChoice(item.value, item.text);
       }
+    },
+
+    handleChoice(choiceTarget, choiceText) {
+      const firstChoiceAch = this.gameState.achievements.find(a => a.id === 'first_choice');
+      if (firstChoiceAch && !firstChoiceAch.unlocked) {
+        firstChoiceAch.unlocked = true;
+      }
+      this.loadScene(choiceTarget, choiceText);
+    },
+
+    confirmChoiceText(text) {
+      if (this.aiLoading) return;
+      if (text.trim() === '') {
+        this.$message.error('请输入有效的行动');
+        return;
+      }
+      this.loadScene('custom', text);
+      this.playerChoiceText = '';
     },
 
     resetGame() {
@@ -296,156 +215,91 @@ export default {
       this.saveTime = new Date().toISOString();
       this.longTermMemory = [];
       this.turnsSinceLastSummary = 0;
-      this.aiLoading = false; // 确保加载状态重置
-      this.gameState = gameStateManager.updateIdentity(this.gameState); // 更新身份
+      this.aiLoading = false;
+      this.gameState = gameStateManager.updateIdentity(this.gameState);
       window.location.reload();
-      // gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices); 
-    },
-
-    handleChoice(choiceTarget, choiceText) {
-      const firstChoiceAch = this.gameState.achievements.find(a => a.id === 'first_choice');
-      if (firstChoiceAch && !firstChoiceAch.unlocked) {
-        firstChoiceAch.unlocked = true;
-      }
-      this.loadScene(choiceTarget, choiceText);
-    },
-
-    confirmChoiceText() {
-      if (this.aiLoading) return; // 防止重复提交
-
-      if (this.playerChoiceText.trim() === '') {
-        this.$message.error('请输入有效的行动');
-        return;
-      }
-      console.log('自定义选择：', this.playerChoiceText);
-
-      const customText = this.playerChoiceText.trim();
-      if (!customText) {
-        alert('请输入你的行动指令');
-        return;
-      }
-
-      // 添加到大事记 (此处先添加，让AI生成结果后再统一更新)
-
-      this.loadScene('custom', customText);
-      this.playerChoiceText = ''; // 清空输入框
     },
 
     async loadScene(sceneKey, playerChoiceText = null) {
-        console.log('开始生成场景...');
       this.aiLoading = true;
-      this.startLoadingTextAnimation();
-
       try {
-        // 在状态更新前检查游戏是否已结束
         if (this.gameState.health <= 0) {
-          this.currentStoryText = "你倒在血泊之中，意识逐渐模糊... 你的冒险已在此终结。";
-          this.choices = [{ text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' }];
-          this.aiLoading = false;
-          gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
+          this.handleDeath();
           return;
         }
-
-        if (this.gameState.turn >= this.maxGameTurns && this.maxGameTurns > 0) { // 检查回合数上限
+        if (this.gameState.turn >= this.maxGameTurns && this.maxGameTurns > 0) {
           await this.handleGameEndByTurnLimit();
-          this.choices = [{ text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' }];
-          this.aiLoading = false;
-          gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
           return;
         }
 
         // 检查是否需要生成长时记忆
         this.turnsSinceLastSummary++;
         if (this.turnsSinceLastSummary >= this.lsummaryInterval) {
-            const logsToSummarize = this.gameState.adventureLog.slice(-this.lsummaryInterval);
-            try {
-                const summary = await aiProcessor.generateLongTermMemory(logsToSummarize, this.selectedModel || this.defaultModelName);
-                if (summary) {
-                    this.longTermMemory.unshift(summary);
-                    if (this.longTermMemory.length > this.ltmMaxSize) {
-                        this.longTermMemory.pop(); // 移除最旧的记忆
-                    }
-                }
-            } catch (sumError) {
-                console.warn("生成长时记忆失败，但游戏继续:", sumError);
-                // 即使失败也重置计数器，避免无限重试
-            } finally {
-                this.turnsSinceLastSummary = 0; // 重置计数器
-            }
+          await this.generateLongTermMemory();
         }
-
-        console.log('loadScene游戏状态',this.gameState)
 
         const scene = await aiProcessor.generateAdventure({
           gameState: this.gameState,
           previousStoryText: this.currentStoryText,
           playerChoiceText: playerChoiceText,
           longTermMemory: this.longTermMemory,
-          model: this.selectedModel || this.defaultModelName
+          model: this.selectedModel || this.defaultModelName,
         });
-        console.log("生成的场景:", scene);
 
-        if (!scene) {
-          throw new Error('AI未能生成有效场景');
-        }
+        if (!scene) throw new Error('AI未能生成有效场景');
 
-        // 更新游戏状态
-        this.gameState = gameStateManager.applyGameStateUpdates(this.gameState, scene);
-        this.currentStoryText = scene.text;
-        this.choices = [...scene.choices];
-
-        if (!scene.choices || scene.choices.length === 0) {
-          this.choices = [{
-            text: '本次冒险暂告一段落，刷新页面重新开始。',
-            value: 'refresh',
-            type: 'refresh'
-          }];
-        }
-
-        // 生成图片（异步操作，不阻塞主流程）
-        this.generateImage(scene.imagePrompt);
-
+        this.updateGameState(scene);
       } catch (error) {
-        console.error("冒险生成失败的详细错误:", error);
-        let errorMessage = error.message || '未知错误';
-        let fallbackContent = error.fallbackContent; // 尝试获取备用内容
-
-        if (fallbackContent) {
-          this.currentStoryText = fallbackContent.text;
-          this.choices = fallbackContent.choices;
-          this.gameState = gameStateManager.applyGameStateUpdates(this.gameState, fallbackContent);
-          this.generateImage(fallbackContent.imagePrompt); // 尝试生成备用图片
-          console.log("使用备用响应");
-        } else {
-          // 根据错误类型提供不同的提示
-          if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
-            alert(`⏰ 请求超时：AI服务响应较慢，请稍后重试。\n\n建议：\n1. 检查网络连接\n2. 稍等片刻后重新选择\n3. 如持续出现，可尝试刷新页面`);
-          } else if (errorMessage.includes('API key')) {
-            alert(`🔑 API配置错误：请检查API密钥设置。\n\n如果使用默认后端API，请联系管理员。\n如果使用自定义API，请检查API设置。`);
-          } else if (errorMessage.includes('500') || errorMessage.includes('502') || errorMessage.includes('503')) {
-            alert(`🔧 服务器错误：AI服务暂时不可用。\n\n建议：\n1. 稍后重试\n2. 检查API服务状态\n3. 如持续出现，请联系技术支持`);
-          } else {
-            alert(`❌ 冒险生成失败: ${errorMessage}\n\n请检查：\n1. 网络连接是否正常\n2. API设置是否正确\n3. 查看浏览器控制台获取详细信息`);
-          }
-          this.currentStoryText = ERROR_MESSAGES.AI_FAILED;
-          this.choices = [
-            { text: "🔄 重新尝试", value: "retry", type: "retry" },
-            // { text: "🏠 返回起点", value: "start", type: "start" },
-            { text: "破开迷雾继续前进", value: "continue", type: "continue" }
-          ];
-        }
+        this.handleGenerationError(error);
       } finally {
         this.aiLoading = false;
-        this.stopLoadingTextAnimation();
-        // 无论成功失败，都尝试保存当前状态
         gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
-        this.gameState = gameStateManager.updateIdentity(this.gameState); // 确保身份是最新的
+        this.gameState = gameStateManager.updateIdentity(this.gameState);
+      }
+    },
+
+    async generateLongTermMemory() {
+      const logsToSummarize = this.gameState.adventureLog.slice(-this.lsummaryInterval);
+      try {
+        const summary = await aiProcessor.generateLongTermMemory(logsToSummarize, this.selectedModel || this.defaultModelName);
+        if (summary) {
+          this.longTermMemory.unshift(summary);
+          if (this.longTermMemory.length > this.ltmMaxSize) {
+            this.longTermMemory.pop();
+          }
+        }
+      } catch (sumError) {
+        console.warn("生成长时记忆失败，但游戏继续:", sumError);
+      } finally {
+        this.turnsSinceLastSummary = 0;
+      }
+    },
+
+    updateGameState(scene) {
+      this.gameState = gameStateManager.applyGameStateUpdates(this.gameState, scene);
+      this.currentStoryText = scene.text;
+      this.choices = [...scene.choices];
+      if (!scene.choices || scene.choices.length === 0) {
+        this.choices = [{ text: '本次冒险暂告一段落，刷新页面重新开始。', value: 'refresh', type: 'refresh' }];
+      }
+      this.generateImage(scene.imagePrompt);
+    },
+
+    handleGenerationError(error) {
+      console.error("冒险生成失败的详细错误:", error);
+      let errorMessage = error.message || '未知错误';
+      let fallbackContent = error.fallbackContent;
+
+      if (fallbackContent) {
+        this.updateGameState(fallbackContent);
+      } else {
+        alert(`❌ 冒险生成失败: ${errorMessage}\n\n请检查网络和API设置。`);
+        this.currentStoryText = ERROR_MESSAGES.AI_FAILED;
+        this.choices = [{ text: "🔄 重新尝试", value: "retry", type: "retry" }, { text: "破开迷雾继续前进", value: "continue", type: "continue" }];
       }
     },
 
     async handleGameEndByTurnLimit() {
-      this.aiLoading = true;
-      this.startLoadingTextAnimation();
       try {
         const finalStoryText = await aiProcessor.endGameByTurnLimit(
           this.gameState,
@@ -460,101 +314,69 @@ export default {
         console.error("生成游戏结局时发生错误:", error);
         this.currentStoryText = ERROR_MESSAGES.AI_FAILED;
         this.choices = [{ text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' }];
-      } finally {
-        this.aiLoading = false;
-        this.stopLoadingTextAnimation();
-        gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
-        this.gameState = gameStateManager.updateIdentity(this.gameState);
       }
     },
 
-        // 启动动态loading文字动画
-    startLoadingTextAnimation() {
-      this.loadingTextIndex = Math.floor(Math.random() * this.loadingTexts.length);
-      this._currentCharIndex = 0; // 从第一个字符开始
-      this.currentLoadingText = ''; // 初始化为空，准备逐字填充
-      this.loadingTextOpacity = 1; // 让文本容器可见
+  async handleNPCInteraction() {
+    this.aiLoading = true;
+    try {
+      const randomChance = Math.random();
 
-      // 立即开始显示第一段文本
-      this._typeNextCharacter();
-    },
+      if (randomChance < 0.7) {
+        const easterEggs = [
+          '曲离歌轻盈地一跃，看似玩笑地踢了你的屁股一下，然后悄然消失。',
+          '曲离歌对你神秘一笑，递给你一朵小花，然后转身离去。',
+          '曲离歌看了你一眼，没有说话，但你感到一阵暖意，仿佛被无形的力量加持。',
+        ];
+        const chosenEgg = easterEggs[Math.floor(Math.random() * easterEggs.length)];
 
-    // 逐字显示下一个字符
-    _typeNextCharacter() {
-      const fullText = this.loadingTexts[this.loadingTextIndex];
-
-      // 预防性检查，以防 loadingTexts 为空或索引越界
-      if (!fullText) {
-          this.stopLoadingTextAnimation();
-          return;
+        this.currentStoryText = chosenEgg;
+        
+      } else { 
+        this.currentStoryText = "曲离歌的眼神变得严肃起来...";
+        // 无条件调用 AI，获取具体的建议
+        const response = await aiProcessor.generateNPCInteraction(
+          this.gameState,
+          '曲离歌',
+          this.selectedModel || this.defaultModelName
+        );
+        
+        this.gameState.adventureLog.unshift({ entry: response.log });
+        this.currentStoryText = response.dialogue;
       }
+    } catch (error) {
+      console.error('NPC互动失败:', error);
+      this.currentStoryText = '曲离歌叹了口气，似乎对你的无礼感到不满。';
+    } finally {
+      this.aiLoading = false;
+      gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
+    }
+  },
 
-      // 如果当前文本已全部显示
-      if (this._currentCharIndex >= fullText.length) {
-        // 清除逐字定时器
-        clearTimeout(this._typeInterval);
-        this._typeInterval = null;
-
-        // 设置定时器，等待一段时间后切换到下一段文本
-        this._nextSentenceTimeout = setTimeout(() => {
-          this.loadingTextIndex = (this.loadingTextIndex + 1) % this.loadingTexts.length; // 切换到下一个文本索引（循环）
-          this._currentCharIndex = 0; // 重置字符索引，为下一个文本做准备
-          this.currentLoadingText = ''; // 清空当前显示文本，准备新打字
-          this._typeNextCharacter(); // 开始显示下一个文本
-        }, 3000); // **每段文本完全显示后停留3秒** (可调整)
-        return;
-      }
-
-      // 逐步添加字符到 currentLoadingText
-      this.currentLoadingText = fullText.substring(0, this._currentCharIndex + 1);
-      this._currentCharIndex++;
-
-      // 设置定时器，继续显示下一个字符
-      this._typeInterval = setTimeout(() => {
-        this._typeNextCharacter();
-      }, 70); // **逐字显示速度：70毫秒/字符** (可调整)
-    },
-
-    // 停止动态loading文字动画
-    stopLoadingTextAnimation() {
-      // 清除所有相关的定时器，防止内存泄漏
-      clearTimeout(this._typeInterval);
-      clearTimeout(this._nextSentenceTimeout);
-      this._typeInterval = null;
-      this._nextSentenceTimeout = null;
-
-      this.loadingTextOpacity = 0; // 隐藏文本容器
-      this.currentLoadingText = ''; // 清空当前显示的文本
+    handleDeath() {
+      this.currentStoryText = "你倒在血泊之中，意识逐渐模糊... 你的冒险已在此终结。";
+      this.choices = [{ text: '📜 🔄 重新开始', value: '重新开始', type: 'retry' }];
+      gameStateManager.saveGameState(this.gameState, this.currentStoryText, this.currentSceneImg, this.choices);
     },
 
     async generateImage(prompt) {
       if (!this.enableImageRendering) {
-        console.log('图片渲染未开启，跳过图片生成。');
         this.currentSceneImg = '';
         return;
       }
       try {
-        const isLocalFile = window.location.protocol === 'file:';
-        let imageUrl;
-
-        if (isLocalFile) {
-          imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&width=800&height=600&model=flux`;
-          this.currentSceneImg = imageUrl;
-        } else {
-          const data = await gameApi.generateImage({ prompt: prompt, width: 800, height: 600, nologo: true, model: 'flux' });
-          if (!data.success || !data.imageUrl) {
-            throw new Error('图片生成失败');
-          }
-          this.currentSceneImg = data.imageUrl;
-          console.log('图片生成成功:', data);
+        const data = await gameApi.generateImage({ prompt: prompt, width: 800, height: 600, nologo: true, model: 'flux' });
+        if (!data.success || !data.imageUrl) {
+          throw new Error('图片生成失败');
         }
+        this.currentSceneImg = data.imageUrl;
       } catch (error) {
         console.error('图片生成错误:', error);
         const fallbackUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTJlIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzRlY2RjNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuS/ruS7meS4lueVjO+8muS6kea4uuS7meWcnzwvdGV4dD4KPC9zdmc+';
         this.currentSceneImg = fallbackUrl;
       }
     },
-  }
+  },
 };
 </script>
 

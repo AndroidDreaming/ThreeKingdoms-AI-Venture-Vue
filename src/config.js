@@ -1,6 +1,6 @@
 const gameVision = '1.0.1';
-const gameTitle = '三国模拟人生';
-const gameSubtitle = '大模型文字大冒险';
+const gameTitle = '汉末·往昔之影';
+const gameSubtitle = '三国文字冒险游戏';
 
 import prompt from "./configs/prompt";
 

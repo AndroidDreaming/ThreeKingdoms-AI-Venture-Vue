@@ -216,6 +216,8 @@ export default {
     }
   },
 
+  
+
   // 游戏结局处理
   async endGameByTurnLimit(gameState, currentStoryText, longTermMemory, maxGameTurns, model) {
     // 格式化记忆
@@ -301,5 +303,50 @@ export default {
         details: error
       };
     }
+  },
+
+  async generateNPCInteraction(gameState, npcName, modelName) {
+    const prompt = `
+你现在是游戏角色【${npcName}】，你是一个可爱，神秘且洞悉人心的江湖隐士，是小道姑。
+玩家目前的状态为：
+- 身份: ${gameState.identity}
+- 体力: ${gameState.health}
+- 铜钱: ${gameState.coins}
+- 兵力: ${gameState.troops}
+- 大事记：${gameState.adventureLog.map(log => log.entry).join('；')}
+
+玩家点击了你，想向你寻求建议或互动。
+请根据玩家的当前状态，生成一段简短的、富有【${npcName}】个人风格的回应。
+- 大概率情况根据当前情况给出玩家一个无厘头的建议
+- 小概率生成靠谱的建议
+- 也可以偶尔给出一段充满哲理或略带神秘感的对话。
+
+请直接返回JSON格式，包含以下字段，对话开头必须是曲离歌表示：
+{
+  "dialogue": "NPC的对话内容。",
+  "action": "如果触发彩蛋，此处为'kick'，否则为null。",
+  "log": "本次互动添加到大事记的简短记录。"
+}
+`;
+
+    try {
+      const response = await gameApi.chatWithAI({
+        prompt: prompt,
+        model: modelName,
+        max_tokens: 200,
+      });
+
+      const parsedResponse = JSON.parse(response.choices[0].message.content);
+      return parsedResponse;
+
+    } catch (error) {
+      console.error("生成NPC互动失败:", error);
+      return {
+        dialogue: "曲离歌看了你一眼，没有说话。",
+        action: null,
+        log: "与曲离歌进行了一次简短的互动。"
+      };
+    }
   }
+
 };
